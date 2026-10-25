@@ -1,6 +1,6 @@
 (function(){
   var C=window.WCTAC, KEY='wctac_session', W=window.W={};
-  W.ROLE={owner:'เจ้าของระบบ',librarian:'ผู้ดูแลห้องสมุด',teacher:'ครูประจำชั้น',assistant:'ครูผู้ช่วย',viewer:'ผู้ชม'};
+  W.ROLE={owner:'เจ้าของระบบ',librarian:'ผู้ดูแลห้องสมุด',teacher:'ครูประจำชั้น',assistant:'ครูผู้ช่วย',linkuser:'ครู (เข้าด้วยลิงก์)',viewer:'ผู้ชม'};
   W.token=function(){try{return localStorage.getItem(KEY)}catch(e){return null}};
   W.setToken=function(t){try{t?localStorage.setItem(KEY,t):localStorage.removeItem(KEY)}catch(e){}};
   W.esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
@@ -34,7 +34,7 @@
   W.band();
   W.need=function(cb){
     if(!W.token()){location.href='index.html';return}
-    W.raw('me',[W.token()]).then(function(u){W.user=u;cb(u)},function(){W.setToken(null);location.href='index.html'});
+    W.raw('me',[W.token()]).then(function(u){W.user=u;if(u.role==='linkuser'&&!/\/(attend|attend-report|index)\.html$|\/$/.test(location.pathname)){location.href='index.html';return}cb(u)},function(){W.setToken(null);location.href='index.html'});
   };
   W.logout=function(){var t=W.token();W.setToken(null);(t?W.raw('logout',[t]):Promise.resolve()).then(function(){location.href='index.html'},function(){location.href='index.html'})};
 })();

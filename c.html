@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>เข้าเช็คชื่อด้วยลิงก์ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="app.css?v=k2">
+</head>
+<body>
+<main style="max-width:420px">
+  <div class="hero"><img src="img/logo.png" alt="ตราสำนักศาสนศึกษาวัดพระธาตุศรีจอมทอง" width="96" height="96"><h1>ระบบสารสนเทศ<br>สำนักศาสนศึกษาวัดพระธาตุศรีจอมทอง</h1></div>
+  <div class="card" id="box">กำลังตรวจสอบลิงก์...</div>
+  <p style="text-align:center"><small>ลิงก์นี้เป็นของท่านเฉพาะบุคคล กรุณาอย่าส่งต่อให้ผู้อื่น</small></p>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=k2"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, box=$('box');
+  var token=(location.hash||'').replace(/^#/,'').trim(), info=null, pin='';
+  function fail(t){box.innerHTML='<b class="err">'+esc(t)+'</b><p>หากลิงก์ใช้ไม่ได้ กรุณาติดต่อเจ้าของระบบเพื่อขอลิงก์ใหม่</p>'}
+  function enter(){location.href='index.html'}
+  function ask(){
+    box.innerHTML='<h2>สวัสดี '+esc(info.name)+'</h2><p>'+(info.temp?'ใส่ <b>PIN ชั่วคราว</b> ที่ได้รับ (6 หลัก)':'ใส่ <b>PIN</b> ของท่าน')+'</p>'+
+      '<input id="pn" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN" style="text-align:center;font-size:22px;letter-spacing:6px"><p id="msg" style="min-height:24px"></p><button class="p" id="go" style="width:100%">ต่อไป</button>';
+    var p=$('pn');p.focus();p.onkeydown=function(e){if(e.key==='Enter')$('go').click()};
+    $('go').onclick=function(){
+      pin=p.value;if(!pin){$('msg').innerHTML='<span class="err">กรุณาใส่ PIN</span>';return}
+      $('go').disabled=true;$('msg').textContent='กำลังตรวจสอบ...';
+      W.raw('linkLogin',[token,pin]).then(function(r){
+        if(r.need==='newpin')return setNew();
+        W.setToken(r.token);enter();
+      },function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>';$('go').disabled=false;p.value='';p.focus()});
+    };
+  }
+  function setNew(){
+    box.innerHTML='<h2>ตั้ง PIN ของท่าน</h2><p>ตั้ง PIN ใหม่ 4–6 หลัก ใช้เข้าทุกครั้งที่เปิดลิงก์นี้ จำไว้และอย่าบอกผู้อื่น</p>'+
+      '<input id="n1" type="password" inputmode="numeric" maxlength="6" placeholder="PIN ใหม่" style="text-align:center;font-size:20px"><div style="height:8px"></div>'+
+      '<input id="n2" type="password" inputmode="numeric" maxlength="6" placeholder="ยืนยัน PIN ใหม่" style="text-align:center;font-size:20px"><p id="msg" style="min-height:24px"></p><button class="p" id="go" style="width:100%">ตั้ง PIN และเข้าใช้งาน</button>';
+    $('go').onclick=function(){
+      var a=$('n1').value,b=$('n2').value;
+      if(!/^\d{4,6}$/.test(a)){$('msg').innerHTML='<span class="err">PIN ต้องเป็นตัวเลข 4–6 หลัก</span>';return}
+      if(a!==b){$('msg').innerHTML='<span class="err">PIN ทั้งสองช่องไม่ตรงกัน</span>';return}
+      $('go').disabled=true;$('msg').textContent='กำลังบันทึก...';
+      W.raw('linkLogin',[token,pin,a]).then(function(r){W.setToken(r.token);enter()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>';$('go').disabled=false});
+    };
+  }
+  if(!token){fail('ลิงก์ไม่ถูกต้อง (ไม่พบรหัสท้ายลิงก์)');return}
+  W.raw('linkInfo',[token]).then(function(r){
+    info=r;
+    // มี session ของลิงก์นี้อยู่แล้ว → เข้าได้เลย
+    if(W.token()){return W.raw('me',[W.token()]).then(function(u){if(u.role==='linkuser'&&u.linkId===info.linkId)enter();else ask()},ask)}
+    ask();
+  },function(e){fail(e.message)});
+})();
+</script>
+</body>
+</html>

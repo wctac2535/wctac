@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ลิงก์เช็คชื่อ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css?v=k2">
+</head>
+<body data-title="ลิงก์เช็คชื่อ">
+<main style="max-width:760px">
+  <div class="bar"><a class="btn" href="index.html">← หน้าแรก</a><span class="sp"></span><button class="p" id="bNew">+ สร้างลิงก์เช็คชื่อ</button></div>
+  <p>สำหรับครูที่ไม่ใช้ Gmail: ส่งลิงก์ส่วนตัวให้แต่ละท่านทาง LINE (ส่วนตัว) แล้วบอก PIN ชั่วคราวแยกอีกช่องทาง ครูตั้ง PIN ของตัวเองตอนเข้าครั้งแรก</p>
+  <div id="list"></div>
+  <p id="msg"></p>
+</main>
+
+<dialog id="dF"><form method="dialog">
+  <h2 id="fT">สร้างลิงก์เช็คชื่อ</h2>
+  <label>ชื่อครู (เลือกจากทะเบียนหรือพิมพ์เอง)<input id="fName" list="tl" maxlength="60" autocomplete="off"></label><datalist id="tl"></datalist>
+  <label>ชั้นที่รับผิดชอบ</label><div id="fCls"></div>
+  <div class="g2"><label>วันหมดอายุ (เว้นว่าง = ไม่กำหนด)<input type="date" id="fExp"></label><label>แก้ไขเช็คชื่อย้อนหลังได้ (วัน)<input type="number" id="fBack" min="0" max="60" value="7"></label></div>
+  <p id="fMsg" class="err"></p>
+  <div class="bar"><button type="button" id="fSave" class="p">บันทึก</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<dialog id="dS"><form method="dialog">
+  <h2>ส่งให้ครู <span id="sName"></span></h2>
+  <p class="err"><b>แสดงครั้งเดียว</b> ปิดหน้านี้แล้วจะดูลิงก์และ PIN เดิมอีกไม่ได้ (ถ้าหายให้กด "ลิงก์ใหม่")</p>
+  <label>ลิงก์</label><div class="card" id="sUrl" style="word-break:break-all;margin:4px 0"></div>
+  <label>PIN ชั่วคราว (ใช้ครั้งเดียว แล้วครูตั้งใหม่)</label><div class="card" id="sPin" style="font-size:24px;letter-spacing:4px;margin:4px 0"></div>
+  <div class="bar" style="margin-top:8px"><button type="button" id="cMsg" class="p">คัดลอกข้อความส่งครู (ลิงก์)</button><button type="button" id="cPin">คัดลอก PIN</button></div>
+  <p id="cOk"></p>
+  <p><small>ส่งข้อความผ่าน LINE ส่วนตัวของครู แล้วบอก PIN แยกอีกช่องทาง (เช่น โทร หรือข้อความแยก)</small></p>
+  <div class="bar"><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<dialog id="dL"><form method="dialog">
+  <h2>ประวัติการใช้งาน <span id="lName"></span></h2><div id="lBody"></div>
+  <div class="bar"><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<script src="config.js"></script>
+<script src="common.js?v=k2"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc;
+  if(u.role!=='owner'){document.querySelector('main').innerHTML='<div class="card err">เฉพาะเจ้าของระบบ <a href="index.html">กลับ</a></div>';return}
+  document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=function(){b.closest('dialog').close()}});
+  var S={links:[],classes:[],base:'',edit:null,names:[]}, ST={ok:'ใช้งานอยู่',off:'ยกเลิกแล้ว',expired:'หมดอายุ'}, EV={created:'สร้างลิงก์',login:'เข้าสู่ระบบ',pin_fail:'PIN ผิด',locked:'ล็อกชั่วคราว',pin_set:'ตั้ง PIN',pin_reset:'รีเซ็ต PIN',rotated:'สร้างลิงก์ใหม่',revoked:'ยกเลิก',enabled:'เปิดใช้',deleted:'ลบ'};
+  function th(iso){if(!iso)return '—';try{return new Date(iso).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}catch(e){return iso}}
+  function load(){
+    return W.api('listLinks').then(function(r){S.links=r.links;S.classes=r.classes;S.base=r.base;draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function draw(){
+    $('list').innerHTML=S.links.length?S.links.map(function(l){
+      return '<div class="card"><div class="bar"><b style="font-size:17px">'+esc(l.name)+'</b><span class="sp"></span><span class="'+(l.state==='ok'?'ok':'err')+'">'+ST[l.state]+'</span></div>'+
+        '<p style="margin:4px 0">'+l.classNames.map(esc).join(' · ')+'</p>'+
+        '<small>ใช้ล่าสุด '+esc(th(l.lastUsed))+' · แก้ย้อนหลังได้ '+l.backdays+' วัน · '+(l.expires?'หมดอายุ '+esc(l.expires):'ไม่กำหนดอายุ')+(l.pinTemp?' · <b class="err">ครูยังไม่ได้ตั้ง PIN</b>':'')+(l.locked?' · <b class="err">ถูกล็อกชั่วคราว</b>':'')+'</small>'+
+        '<div class="bar" style="margin-top:8px"><button data-a="edit" data-i="'+l.linkId+'">แก้ไข</button><button data-a="link" data-i="'+l.linkId+'">ลิงก์ใหม่</button><button data-a="pin" data-i="'+l.linkId+'">รีเซ็ต PIN</button>'+
+        (l.status==='on'?'<button class="d" data-a="off" data-i="'+l.linkId+'">ยกเลิก</button>':'<button data-a="on" data-i="'+l.linkId+'">เปิดใช้</button>')+'<button data-a="log" data-i="'+l.linkId+'">ประวัติ</button><button class="d" data-a="del" data-i="'+l.linkId+'">ลบ</button></div></div>';
+    }).join(''):'<div class="card"><p>ยังไม่มีลิงก์ กด "+ สร้างลิงก์เช็คชื่อ"</p></div>';
+    $('list').querySelectorAll('[data-a]').forEach(function(b){b.onclick=function(){act(b.dataset.a,b.dataset.i)}});
+  }
+  function show(name,r){
+    $('sName').textContent=name;
+    var url=r.url||'(ลิงก์เดิมไม่เปลี่ยน ใช้ลิงก์ที่ส่งไปแล้ว)';
+    $('sUrl').textContent=url;$('sPin').textContent=r.pin.replace(/(\d{3})(\d{3})/,'$1 $2');$('cOk').textContent='';
+    $('cMsg').style.display=r.url?'':'none';
+    $('cMsg').onclick=function(){copy('สวัสดีครับ/ค่ะ '+name+'\nลิงก์เช็คชื่อของท่าน: '+r.url+'\nเปิดลิงก์แล้วใส่ PIN ชั่วคราวที่แจ้งแยกให้ จากนั้นระบบจะให้ตั้ง PIN ของท่านเอง\nกรุณาบันทึกลิงก์นี้ไว้และอย่าส่งต่อให้ผู้อื่น')};
+    $('cPin').onclick=function(){copy(r.pin)};
+    $('dS').showModal();
+  }
+  function copy(t){
+    function ok(){$('cOk').innerHTML='<span class="ok">คัดลอกแล้ว</span>'}
+    function fb(){var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');ok()}catch(e){$('cOk').innerHTML='<span class="err">คัดลอกไม่ได้ กรุณาเลือกข้อความด้านบนแล้วคัดลอกเอง</span>'}document.body.removeChild(a)}
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,fb);else fb();
+  }
+  function act(a,id){
+    var l=S.links.filter(function(x){return x.linkId===id})[0];
+    function run(p,m){return p.then(function(r){return load().then(function(){return r})},function(e){alert(e.message)})}
+    if(a==='edit')return openF(l);
+    if(a==='off'){if(confirm('ยกเลิกลิงก์ของ '+l.name+' ใช่ไหม ครูที่กำลังใช้อยู่จะถูกตัดออกทันที'))run(W.api('saveLink',[id,{status:'off'}]));return}
+    if(a==='on')return run(W.api('saveLink',[id,{status:'on'}]));
+    if(a==='del'){if(confirm('ลบลิงก์ของ '+l.name+' ถาวรใช่ไหม'))run(W.api('deleteLink',[id]));return}
+    if(a==='link'){if(confirm('สร้างลิงก์ใหม่ให้ '+l.name+' ลิงก์เก่าจะใช้ไม่ได้ทันที และต้องใช้ PIN ชั่วคราวชุดใหม่ ดำเนินการต่อไหม'))run(W.api('rotateLink',[id,'link'])).then(function(r){if(r)show(l.name,r)});return}
+    if(a==='pin'){if(confirm('รีเซ็ต PIN ของ '+l.name+' ครูต้องใช้ PIN ชั่วคราวชุดใหม่และตั้ง PIN ใหม่ ดำเนินการต่อไหม'))run(W.api('rotateLink',[id,'pin'])).then(function(r){if(r)show(l.name,r)});return}
+    if(a==='log'){$('lName').textContent=l.name;$('lBody').textContent='กำลังโหลด...';$('dL').showModal();
+      W.api('getLinkLog',[id]).then(function(r){$('lBody').innerHTML=r.length?r.map(function(x){return '<div class="row"><span class="n"><b>'+esc(EV[x.event]||x.event)+'</b><small>'+esc(th(x.time))+(x.note?' · '+esc(x.note):'')+'</small></span></div>'}).join(''):'<p>ยังไม่มีประวัติ</p>'},function(e){$('lBody').textContent=e.message})}
+  }
+  function openF(l){
+    S.edit=l||null;$('fT').textContent=l?'แก้ไขลิงก์ '+l.name:'สร้างลิงก์เช็คชื่อ';$('fMsg').textContent='';
+    $('fName').value=l?l.name:'';$('fExp').value=l?l.expires:'';$('fBack').value=l?l.backdays:7;
+    var sel=l?l.classIds:[],cur=null,h='';
+    S.classes.forEach(function(c){
+      if(c.deptName!==cur){cur=c.deptName;h+='<div style="margin-top:8px"><small><b>แผนก'+esc(cur)+'</b></small></div>'}
+      h+='<label style="margin:0;color:var(--ink);display:inline-flex;gap:6px;align-items:center;margin-right:12px"><input type="checkbox" value="'+c.classId+'" style="width:auto"'+(sel.indexOf(c.classId)>=0?' checked':'')+'> '+esc(c.name)+'</label>';
+    });
+    $('fCls').innerHTML=h;
+    $('dF').showModal();
+  }
+  $('bNew').onclick=function(){openF(null)};
+  $('fSave').onclick=function(){
+    var ids=[].slice.call($('fCls').querySelectorAll('input:checked')).map(function(x){return x.value});
+    var body={name:$('fName').value,classIds:ids,expires:$('fExp').value,backdays:$('fBack').value};
+    $('fSave').disabled=true;$('fMsg').textContent='กำลังบันทึก...';
+    var p=S.edit?W.api('saveLink',[S.edit.linkId,body]):W.api('createLink',[body]);
+    p.then(function(r){$('dF').close();return load().then(function(){if(!S.edit&&r&&r.url)show(body.name,r)})},function(e){$('fMsg').textContent=e.message}).then(function(){$('fSave').disabled=false});
+  };
+  W.api('listPeople').then(function(r){$('tl').innerHTML=r.people.filter(function(p){return p.type==='teacher'&&p.status==='active'}).map(function(p){return '<option value="'+esc(p.name)+'">'}).join('')},function(){});
+  load();
+});
+</script>
+</body>
+</html>

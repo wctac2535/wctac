@@ -6,7 +6,7 @@
 <title>เช็คชื่อ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=e2">
+<link rel="stylesheet" href="app.css?v=k2">
 </head>
 <body data-title="เช็คชื่อ">
 <main style="max-width:640px">
@@ -45,7 +45,7 @@
 </form></dialog>
 
 <script src="config.js"></script>
-<script src="common.js?v=e2"></script>
+<script src="common.js?v=k2"></script>
 <script>
 W.need(function(u){
   var $=function(i){return document.getElementById(i)}, esc=W.esc;
@@ -58,6 +58,11 @@ W.need(function(u){
   function guard(){return !S.dirty||confirm('ยังไม่ได้บันทึก ต้องการทิ้งการเปลี่ยนแปลงไหม')}
   window.addEventListener('beforeunload',function(e){if(S.dirty){e.preventDefault();e.returnValue=''}});
 
+  if(u.role==='linkuser'){
+    var lim=function(){var d=new Date();d.setDate(d.getDate()-(u.backdays||0));return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)};
+    $('date').min=lim();$('oDate').min=lim();
+    $('dLbl').insertAdjacentHTML('afterend','<p><small>เข้าด้วยลิงก์ · '+esc(u.name)+' · แก้ย้อนหลังได้ '+(u.backdays||0)+' วัน</small></p>');
+  }
   W.api('listClasses').then(function(r){
     S.classes=r;
     if(!r.length){$('box').innerHTML='<p>ยังไม่มีชั้นเรียนที่คุณเช็คชื่อได้ ให้เจ้าของระบบใส่อีเมลของคุณเป็นครูประจำชั้นที่ ทะเบียนบุคคล → ชั้นเรียน</p>';return}
