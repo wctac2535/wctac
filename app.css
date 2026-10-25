@@ -1,0 +1,25 @@
+:root{--bg:#f6f4ef;--card:#fff;--ink:#222;--mut:#6b6b6b;--acc:#8a5a00;--bd:#e3ddd0;--err:#b3261e;--ok:#2e7d32}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1b19;--card:#27251f;--ink:#eee;--mut:#a9a49a;--acc:#e0b04a;--bd:#3a372f;--err:#ff8a80;--ok:#81c784}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Noto Sans Thai",sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-top:12px}
+h1{font-size:22px;margin:0}h2{font-size:18px;margin:0 0 8px}p{margin:6px 0;color:var(--mut)}
+button,.btn{font:inherit;padding:8px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
+button.p{background:var(--acc);color:#fff;border-color:var(--acc)}button.d{color:var(--err)}button:disabled{opacity:.5}
+input,select,textarea{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--ink);width:100%}
+label{display:block;margin-top:10px;color:var(--mut);font-size:14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.sp{flex:1}
+.err{color:var(--err)}.ok{color:var(--ok)}small{color:var(--mut)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{padding:4px 12px;border-radius:99px;border:1px solid var(--bd);cursor:pointer;background:var(--card);font-size:14px}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.row{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--bd)}.row:last-child{border:0}
+.row .n{flex:1;min-width:0}.row .n b{display:block;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mut);white-space:nowrap}
+.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.menu a{display:block;padding:18px;border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--ink);text-decoration:none}
+.menu a.off{opacity:.45;pointer-events:none}
+dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--ink);width:min(560px,94vw);max-height:90vh;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.g2{grid-template-columns:1fr}}

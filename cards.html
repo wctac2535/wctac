@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>บัตร QR</title>
+<link rel="stylesheet" href="app.css?v=p1">
+<style>
+#sheet{display:grid;grid-template-columns:repeat(2,90mm);gap:0;justify-content:center;margin-top:12px}
+.qc{width:90mm;height:54mm;border:1px dashed #999;padding:4mm;display:flex;gap:4mm;align-items:center;background:#fff;color:#000;break-inside:avoid;overflow:hidden}
+.qc .q{width:36mm;height:36mm;flex:none}.qc .q svg{width:100%;height:100%;display:block}
+.qc .t{flex:1;min-width:0}.qc .t .nm{font-size:13pt;font-weight:700;line-height:1.25;word-break:break-word}
+.qc .t .cl{font-size:10pt;margin-top:2mm}.qc .t .id{font:600 12pt monospace;margin-top:2mm;letter-spacing:1px}
+.qc .t .org{font-size:8pt;color:#555;margin-top:3mm}
+@media print{
+  @page{size:A4;margin:10mm}
+  body{background:#fff}main{padding:0;max-width:none}.noprint{display:none!important}#sheet{margin:0}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="bar noprint">
+    <a class="btn" href="people.html">← กลับ</a><span class="sp"></span>
+    <small id="cnt"></small><button class="p" id="bPrint">พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+  <p class="noprint"><small>ตอนพิมพ์: ขนาดกระดาษ A4, มาตราส่วน 100% (Default), ปิดส่วนหัวและท้ายกระดาษ ตัดตามเส้นประ</small></p>
+  <p id="msg" class="noprint"></p>
+  <div id="sheet"></div>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=p1"></script>
+<script src="lib/qrcode.js"></script>
+<script>
+W.need(function(){
+  var q=new URLSearchParams(location.search), ids=(q.get('ids')||'').split(',').filter(Boolean), cls=q.get('class')||'';
+  document.getElementById('bPrint').onclick=function(){window.print()};
+  W.api('getCards',[ids,cls]).then(function(list){
+    document.getElementById('cnt').textContent=list.length+' ใบ';
+    if(!list.length){document.getElementById('msg').textContent='ไม่พบรายชื่อที่จะพิมพ์';return}
+    document.getElementById('sheet').innerHTML=list.map(function(p){
+      var x=qrcode(0,'M');x.addData(p.id);x.make();
+      var svg=x.createSvgTag({cellSize:4,margin:2,scalable:true});
+      return '<div class="qc"><div class="q">'+svg+'</div><div class="t"><div class="nm">'+W.esc(p.name)+'</div>'+
+        '<div class="cl">'+W.esc(p.className)+'</div><div class="id">'+W.esc(p.id)+'</div><div class="org">วัดพระธาตุศรีจอมทอง</div></div></div>';
+    }).join('');
+  },function(e){document.getElementById('msg').innerHTML='<span class="err">'+W.esc(e.message)+'</span>'});
+});
+</script>
+</body>
+</html>
