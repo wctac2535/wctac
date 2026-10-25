@@ -6,7 +6,7 @@
 <title>เช็คชื่อ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=b1">
+<link rel="stylesheet" href="app.css?v=d1">
 </head>
 <body data-title="เช็คชื่อ">
 <main style="max-width:640px">
@@ -45,7 +45,7 @@
 </form></dialog>
 
 <script src="config.js"></script>
-<script src="common.js?v=b1"></script>
+<script src="common.js?v=d1"></script>
 <script>
 W.need(function(u){
   var $=function(i){return document.getElementById(i)}, esc=W.esc;
@@ -61,7 +61,7 @@ W.need(function(u){
   W.api('listClasses').then(function(r){
     S.classes=r;
     if(!r.length){$('box').innerHTML='<p>ยังไม่มีชั้นเรียนที่คุณเช็คชื่อได้ ให้เจ้าของระบบใส่อีเมลของคุณเป็นครูประจำชั้นที่ ทะเบียนบุคคล → ชั้นเรียน</p>';return}
-    $('cls').innerHTML=r.map(function(c){return '<option value="'+c.classId+'">'+esc(c.name)+'</option>'}).join('');
+    $('cls').innerHTML=W.clsOptions(r);
     try{var last=localStorage.getItem('wctac_cls');if(last&&r.some(function(c){return c.classId===last}))$('cls').value=last}catch(e){}
     $('date').value=today();$('oDate').value=today();load();
   },function(e){$('box').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
@@ -75,7 +75,7 @@ W.need(function(u){
     },function(e){$('box').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
   }
   function drawSes(){
-    var a=S.A;$('dLbl').innerHTML='<b>'+esc(label($('date').value))+'</b>'+(a.expected?'':' <small>(ไม่ใช่วันเรียนปกติของชั้นนี้)</small>');
+    var a=S.A;$('dLbl').innerHTML='<small>แผนก'+esc(a.cls.deptName)+' · '+esc(a.cls.name)+'</small><br><b>'+esc(label($('date').value))+'</b>'+(a.expected?'':' <small>(ไม่ใช่วันเรียนปกติของชั้นนี้)</small>');
     $('ses').innerHTML=a.cls.sessions.map(function(k){return '<button data-k="'+k+'" class="'+(S.ses===k?'on':'')+'">'+SN[k]+(a.sessions[k].saved?' ✓':'')+'</button>'}).join('');
     $('ses').style.display=a.cls.sessions.length>1?'':'none';
     $('ses').querySelectorAll('button').forEach(function(b){b.onclick=function(){if(!guard())return;S.ses=b.dataset.k;drawSes();pick()}});
@@ -132,7 +132,7 @@ W.need(function(u){
   /* ตั้งค่าชั้น */
   $('wd').innerHTML=[1,2,3,4,5,6,0].map(function(d){return '<label style="margin:0;color:var(--ink)"><input type="checkbox" data-w="'+d+'" style="width:auto"> '+DN[d].replace('วัน','')+'</label>'}).join('');
   $('bSet').onclick=function(e){e.preventDefault();if(!S.A)return;
-    $('sT').textContent='ตั้งค่า '+S.A.cls.name;$('sMsg').textContent='';
+    $('sT').textContent='ตั้งค่า '+S.A.cls.deptName+' · '+S.A.cls.name;$('sMsg').textContent='';
     $('dS').querySelectorAll('[data-s]').forEach(function(c){c.checked=S.A.cls.sessions.indexOf(c.dataset.s)>=0});
     $('dS').querySelectorAll('[data-w]').forEach(function(c){c.checked=S.A.cls.weekdays.indexOf(+c.dataset.w)>=0});
     $('dS').showModal()};
@@ -146,8 +146,10 @@ W.need(function(u){
   function ov(){
     $('oList').textContent='กำลังโหลด...';
     W.api('getDaily',[$('oDate').value]).then(function(L){
+      var curD=null;
       $('oList').innerHTML='<p><b>'+esc(label($('oDate').value))+'</b></p>'+L.map(function(c){
-        return '<div class="row" style="flex-wrap:wrap"><div class="n"><b>'+esc(c.name)+'</b><small>'+c.total+' คน'+(c.expected?'':' · ไม่ใช่วันเรียนปกติ')+'</small></div>'+c.sessions.map(function(x){
+        var hd='';if(c.deptName!==curD){curD=c.deptName;hd='<div style="margin-top:10px"><small><b>แผนก'+esc(curD)+'</b></small></div>'}
+        return hd+'<div class="row" style="flex-wrap:wrap"><div class="n"><b>'+esc(c.name)+'</b><small>'+c.total+' คน'+(c.expected?'':' · ไม่ใช่วันเรียนปกติ')+'</small></div>'+c.sessions.map(function(x){
           var t=x.noClass?'ไม่มีเรียน':x.checked?'มา '+x.counts.P+' สาย '+x.counts.L+' ลา '+x.counts.E+' ขาด '+x.counts.A:(c.expected?'ยังไม่เช็ค':'—');
           return '<a class="tag btn" data-c="'+c.classId+'" data-k="'+x.k+'" style="'+(!x.checked&&!x.noClass&&c.expected?'color:var(--err)':'')+'">'+SN[x.k]+': '+t+'</a>'}).join(' ')+'</div>';
       }).join('');

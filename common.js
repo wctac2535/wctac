@@ -15,6 +15,15 @@
       throw e;
     });
   };
+  // รายการเลือกชั้นแบบจัดกลุ่มตามแผนก (classes ต้องเรียงตามแผนกแล้ว)
+  W.clsOptions=function(list){
+    var out='',cur=null;
+    list.forEach(function(c){
+      if(c.deptName!==cur){if(cur!==null)out+='</optgroup>';out+='<optgroup label="แผนก'+W.esc(c.deptName)+'">';cur=c.deptName}
+      out+='<option value="'+c.classId+'">'+W.esc(c.name)+'</option>';
+    });
+    return out+(cur!==null?'</optgroup>':'');
+  };
   W.band=function(){
     var t=document.body.getAttribute('data-title');if(!t)return;
     var b=document.createElement('div');b.className='band noprint';

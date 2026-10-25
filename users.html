@@ -6,7 +6,7 @@
 <title>จัดการผู้ใช้ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=b1">
+<link rel="stylesheet" href="app.css?v=d1">
 </head>
 <body data-title="จัดการผู้ใช้">
 <main>
@@ -19,29 +19,44 @@
   </div>
 </main>
 <script src="config.js"></script>
-<script src="common.js?v=b1"></script>
+<script src="common.js?v=d1"></script>
 <script>
 W.need(function(u){
-  var $=function(i){return document.getElementById(i)}, esc=W.esc, L=[];
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, L=[], CLS=[];
   if(u.role!=='owner'){document.querySelector('main').innerHTML='<div class="card err">เฉพาะเจ้าของระบบ <a href="index.html">กลับ</a></div>';return}
   var RO=['owner','librarian','teacher','assistant','viewer'];
+  function clsBox(x,i){
+    if(x.role!=='teacher'&&x.role!=='assistant')return '';
+    var cur=null,h='<details style="margin-top:8px"><summary>ชั้นที่รับผิดชอบเช็คชื่อ ('+(x.cls||[]).length+' ชั้น)</summary><div style="padding:6px 0">';
+    CLS.forEach(function(c){
+      if(c.deptName!==cur){cur=c.deptName;h+='<div style="margin-top:6px"><small><b>แผนก'+esc(cur)+'</b></small></div>'}
+      h+='<label style="margin:0;color:var(--ink);display:flex;gap:8px;align-items:center"><input type="checkbox" data-c="'+i+'" value="'+c.classId+'" style="width:auto"'+((x.cls||[]).indexOf(c.classId)>=0?' checked':'')+'> '+esc(c.name)+'</label>';
+    });
+    return h+'</div></details>';
+  }
   function draw(){
     $('list').innerHTML=L.map(function(x,i){
       return '<div class="card" style="margin-top:8px;padding:12px'+(x.active===false?';opacity:.6':'')+'">'+
         '<div class="g2"><label style="margin-top:0">อีเมล<input data-f="email" data-i="'+i+'" value="'+esc(x.email)+'" inputmode="email" autocapitalize="off"></label>'+
         '<label style="margin-top:0">ชื่อที่แสดง<input data-f="name" data-i="'+i+'" value="'+esc(x.name)+'" maxlength="80"></label>'+
         '<label>บทบาท<select data-f="role" data-i="'+i+'">'+RO.map(function(r){return '<option value="'+r+'"'+(x.role===r?' selected':'')+'>'+W.ROLE[r]+'</option>'}).join('')+'</select></label>'+
-        '<label><span style="display:block">&nbsp;</span><span class="bar"><label style="margin:0;color:var(--ink)"><input type="checkbox" data-f="active" data-i="'+i+'" style="width:auto"'+(x.active!==false?' checked':'')+'> ใช้งานอยู่</label><span class="sp"></span><button type="button" class="d" data-x="'+i+'">ลบ</button></span></label></div></div>';
+        '<label><span style="display:block">&nbsp;</span><span class="bar"><label style="margin:0;color:var(--ink)"><input type="checkbox" data-f="active" data-i="'+i+'" style="width:auto"'+(x.active!==false?' checked':'')+'> ใช้งานอยู่</label><span class="sp"></span><button type="button" class="d" data-x="'+i+'">ลบ</button></span></label></div>'+clsBox(x,i)+'</div>';
     }).join('');
     $('list').querySelectorAll('[data-f]').forEach(function(el){
-      el.onchange=el.oninput=function(){var x=L[el.dataset.i];x[el.dataset.f]=el.type==='checkbox'?el.checked:el.value}
+      el.onchange=el.oninput=function(){var x=L[el.dataset.i];x[el.dataset.f]=el.type==='checkbox'?el.checked:el.value;if(el.dataset.f==='role')draw()}
+    });
+    $('list').querySelectorAll('[data-c]').forEach(function(el){
+      el.onchange=function(){var x=L[el.dataset.c];x.cls=[].slice.call($('list').querySelectorAll('[data-c="'+el.dataset.c+'"]')).filter(function(k){return k.checked}).map(function(k){return k.value})}
     });
     $('list').querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(){
       var x=L[b.dataset.x];
       if(x.email.toLowerCase()===u.email&&!confirm('นี่คือบัญชีของคุณเอง ลบแล้วจะเข้าไม่ได้ ต้องการลบจริงไหม'))return;
       L.splice(b.dataset.x,1);draw()}});
   }
-  function load(){W.api('getStaff').then(function(r){L=r;draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
+  function load(){Promise.all([W.api('getStaff'),W.api('listClasses')]).then(function(v){
+    L=v[0];CLS=v[1];
+    L.forEach(function(x){x.cls=CLS.filter(function(c){return c.emails.indexOf(x.email.toLowerCase())>=0}).map(function(c){return c.classId});x.cls0=JSON.stringify(x.cls.slice().sort())});
+    draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
   $('bAdd').onclick=function(){L.push({email:'',name:'',role:'librarian',active:true});draw();var e=$('list').querySelectorAll('[data-f=email]');e[e.length-1].focus()};
   $('bSave').onclick=function(){
     for(var i=0;i<L.length;i++){
@@ -51,7 +66,10 @@ W.need(function(u){
     var me=L.filter(function(x){return x.email===u.email})[0];
     if(!me||me.active===false||me.role!=='owner'){if(!confirm('คุณกำลังปิดสิทธิ์หรือลดบทบาทของบัญชีตัวเอง หลังบันทึกจะไม่สามารถเข้าหน้านี้ได้อีก ต้องการทำต่อไหม'))return}
     $('bSave').disabled=true;$('msg').textContent='กำลังบันทึก...';
-    W.api('saveStaff',[L]).then(function(n){$('msg').innerHTML='<span class="ok">บันทึกแล้ว '+n+' คน</span>';return W.api('getStaff')}).then(function(r){L=r;draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'}).then(function(){$('bSave').disabled=false});
+    var asg=L.map(function(x){var ok=x.role==='teacher'||x.role==='assistant';return {email:x.email,cls:ok?(x.cls||[]):[],chg:JSON.stringify((ok?(x.cls||[]):[]).slice().sort())!==(x.cls0||'[]')}}).filter(function(a){return a.chg});
+    W.api('saveStaff',[L]).then(function(n){
+      return asg.reduce(function(p,a){return p.then(function(){return W.api('saveAssignments',[a.email,a.cls])})},Promise.resolve()).then(function(){$('msg').innerHTML='<span class="ok">บันทึกแล้ว '+n+' คน</span>';load()});
+    }).then(null,function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'}).then(function(){$('bSave').disabled=false});
   };
   load();
 });
