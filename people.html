@@ -6,7 +6,7 @@
 <title>ทะเบียนบุคคล · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=n1">
+<link rel="stylesheet" href="app.css?v=e1">
 </head>
 <body data-title="ทะเบียนบุคคล">
 <main>
@@ -19,7 +19,12 @@
       <button id="bCls">ชั้นเรียน</button>
       <button id="bCard">พิมพ์บัตร QR</button>
     </div>
+    <div class="g2" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <select id="fD" title="แผนก"></select><select id="fT" title="ประเภท"><option value="">ทุกประเภท</option><option value="student">นักเรียน</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option></select>
+      <select id="fS" title="สถานะ"><option value="">ปกติ (ไม่รวมออก/ลบ)</option><option value="paused">พักการเรียน</option><option value="left">ออก/จบแล้ว</option><option value="deleted">ลบแล้ว</option><option value="all">ทุกสถานะ</option></select>
+    </div>
     <div class="chips" id="chips"></div>
+    <div class="bar" id="bulk" style="display:none;background:var(--band);border:1px solid var(--gold);border-radius:10px;padding:8px"><b id="bN"></b><span class="sp"></span><button id="bEdit" class="p">แก้ไขที่เลือก</button><button id="bDel" class="d">ลบ</button><button id="bRes">กู้คืน</button><button id="bClr">ยกเลิกการเลือก</button></div>
     <div class="bar"><label style="margin:0"><input type="checkbox" id="all" style="width:auto"> เลือกทั้งหมดที่แสดง</label><span class="sp"></span><small id="cnt"></small></div>
     <div id="list"></div>
     <p id="msg"></p>
@@ -32,8 +37,9 @@
   <div class="g2">
     <label>ชื่อที่ใช้เรียก<input id="pNick" maxlength="40"></label>
     <label>ประเภท<select id="pType"><option value="student">นักเรียน</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option></select></label>
-    <div id="lCls" style="grid-column:1/-1"><label>ชั้นที่เรียน (แผนกละ 1 ชั้น เรียนหลายแผนกได้)</label><div id="pClsBox"></div></div>
-    <label>สถานะ<select id="pSt"><option value="active">เรียนอยู่/ใช้งาน</option><option value="paused">พักการเรียน</option><option value="left">ออก/จบแล้ว</option></select></label>
+    <div id="lCls" style="grid-column:1/-1"><label id="pClsLbl">ชั้นที่เรียน (แผนกละ 1 ชั้น เรียนหลายแผนกได้)</label><div id="pClsBox"></div></div>
+    <div id="lEmail" style="grid-column:1/-1"><label>อีเมลสำหรับล็อกอิน (ไม่บังคับ)<input id="pEmail" inputmode="email" autocapitalize="off" placeholder="ใส่แล้วครูเช็คชื่อชั้นที่สอนได้ทันที"></label></div>
+    <label>สถานะ<select id="pSt"><option value="active">เรียนอยู่/ใช้งาน</option><option value="paused">พักการเรียน</option><option value="left">ออก/จบแล้ว</option><option value="deleted">ลบแล้ว</option></select></label>
   </div>
   <label>หมายเหตุ<input id="pNote" maxlength="200"></label>
   <p id="pMsg" class="err"></p>
@@ -42,12 +48,23 @@
 
 <dialog id="dI"><form method="dialog">
   <h2>นำเข้ารายชื่อ</h2>
-  <p>วางข้อมูลจาก Excel (คัดลอกเซลล์มาวาง) หรือเลือกไฟล์ .xlsx / .csv คอลัมน์: <b>ชื่อ, ชื่อที่ใช้เรียก, ประเภท, ชั้น, หมายเหตุ</b><br>ประเภท: นักเรียน / ครู / บุคลากร (เว้นว่าง = นักเรียน)<br>ชั้น: เขียน <i>แผนก / ชั้น</i> เช่น <i>บาลี / ประโยค ป.ธ.๓</i> เรียนหลายแผนกคั่นด้วย <b>;</b> เช่น <i>บาลี / ประโยค ป.ธ.๓ ; ธรรม / นักธรรมชั้น โท</i> (ถ้าชื่อชั้นไม่ซ้ำกันข้ามแผนก ใส่แค่ชื่อชั้นก็ได้) <a href="student-template.xlsx" download="แม่แบบรายชื่อนักเรียน.xlsx">ดาวน์โหลดแม่แบบ Excel</a></p>
+  <p>วางข้อมูลจาก Excel (คัดลอกเซลล์มาวาง) หรือเลือกไฟล์ .xlsx / .csv คอลัมน์: <b>ชื่อ, ชื่อที่ใช้เรียก, ประเภท, ชั้น, หมายเหตุ, อีเมล</b> (อีเมลใช้กับครู เฉพาะเจ้าของระบบ)<br>ประเภท: นักเรียน / ครู / บุคลากร (เว้นว่าง = นักเรียน) · ชั้นของ <b>ครู</b> คือชั้นที่สอน เลือกได้หลายชั้นในแผนกเดียวกัน<br>ชั้น: เขียน <i>แผนก / ชั้น</i> เช่น <i>บาลี / ประโยค ป.ธ.๓</i> เรียนหลายแผนกคั่นด้วย <b>;</b> เช่น <i>บาลี / ประโยค ป.ธ.๓ ; ธรรม / นักธรรมชั้น โท</i> (ถ้าชื่อชั้นไม่ซ้ำกันข้ามแผนก ใส่แค่ชื่อชั้นก็ได้) <a href="student-template.xlsx" download="แม่แบบรายชื่อนักเรียน.xlsx">ดาวน์โหลดแม่แบบ Excel</a></p>
   <textarea id="iTxt" rows="6" placeholder="พระสมชาย ใจดี&#9;สมชาย&#9;นักเรียน&#9;บาลี / ประโยค ป.ธ.๓&#9;"></textarea>
   <div class="bar" style="margin-top:8px"><input type="file" id="iFile" accept=".xlsx,.xls,.csv,.txt,text/csv" style="flex:1"><button type="button" id="iChk">ตรวจสอบ</button></div>
+  <label style="color:var(--ink);display:flex;gap:8px;align-items:center"><input type="checkbox" id="iUpd" style="width:auto"> อัปเดตคนที่มีชื่อตรงกันอยู่แล้ว (เขียนทับประเภท ชั้น หมายเหตุ อีเมลตามไฟล์ ช่องที่เว้นว่างจะคงค่าเดิม)</label>
   <div id="iPrev" style="max-height:30vh;overflow:auto;margin-top:8px"></div>
   <p id="iMsg" class="err"></p>
   <div class="bar"><button type="button" id="iGo" class="p" disabled>ยืนยันนำเข้า</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<dialog id="dK"><form method="dialog">
+  <h2 id="kT">แก้ไขหลายคน</h2>
+  <div class="g2"><label>ประเภท<select id="kType"><option value="">(ไม่เปลี่ยน)</option><option value="student">นักเรียน</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option></select></label>
+  <label>สถานะ<select id="kSt"><option value="">(ไม่เปลี่ยน)</option><option value="active">เรียนอยู่/ใช้งาน</option><option value="paused">พักการเรียน</option><option value="left">ออก/จบแล้ว</option><option value="deleted">ลบแล้ว</option></select></label></div>
+  <label>ชั้นเรียน (ตั้งต่อแผนก)</label><div id="kBox"></div>
+  <p><small>"ตั้งเป็นชั้น" แทนที่ชั้นเดิมของคนที่เลือกในแผนกนั้น (ครูที่สอนหลายชั้นในแผนกเดียวกันจะเหลือชั้นที่เลือกชั้นเดียว) แผนกที่เลือก "(ไม่เปลี่ยน)" ไม่ถูกแตะ</small></p>
+  <p id="kMsg" class="err"></p>
+  <div class="bar"><button type="button" id="kGo" class="p">บันทึก</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
 </form></dialog>
 
 <dialog id="dC"><form method="dialog">
@@ -65,53 +82,93 @@
 </form></dialog>
 
 <script src="config.js"></script>
-<script src="common.js?v=n1"></script>
+<script src="common.js?v=e1"></script>
 <script src="lib/xlsx.mini.min.js"></script>
 <script>
 W.need(function(u){
   var $=function(i){return document.getElementById(i)}, esc=W.esc;
-  var S={people:[],classes:[],depts:[],canEdit:false,cls:'',sel:{},edit:null};
+  var S={people:[],classes:[],depts:[],canEdit:false,isOwner:false,cls:'',dept:'',type:'',status:'',sel:{},edit:null};
   var TYPE={student:'นักเรียน',teacher:'ครู',staff:'บุคลากร'}, ST={active:'',paused:'พักการเรียน',left:'ออก/จบ'};
   $('who').textContent=u.name+' · '+(W.ROLE[u.role]||u.role);
   document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=function(){b.closest('dialog').close()}});
   function cname(id){var c=S.classes.filter(function(c){return c.classId===id})[0];return c?c.name:''}
   function load(){
     return W.api('listPeople').then(function(r){
-      S.people=r.people;S.classes=r.classes;S.depts=r.depts;S.canEdit=r.canEdit;
+      S.people=r.people;S.classes=r.classes;S.depts=r.depts;S.canEdit=r.canEdit;S.isOwner=r.isOwner;
       ['bAdd','bImp'].forEach(function(i){$(i).style.display=S.canEdit?'':'none'});
       draw();
     },function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
   }
   function shown(){
-    var t=$('q').value.trim().toLowerCase();
+    var t=$('q').value.trim().toLowerCase(), dcl={};
+    S.classes.forEach(function(c){dcl[c.classId]=c.deptId});
     return S.people.filter(function(p){
+      if(S.status==='all'){} else if(S.status){ if(p.status!==S.status) return false; } else if(p.status==='left'||p.status==='deleted') return false;
+      if(S.type&&p.type!==S.type) return false;
+      if(S.dept&&!p.cls.some(function(c){return dcl[c]===S.dept})) return false;
       if(S.cls==='_none'){ if(p.cls.length) return false; }
       else if(S.cls && p.cls.indexOf(S.cls)<0) return false;
-      if(!S.cls && p.status==='left') return false;
-      return !t||p.name.toLowerCase().indexOf(t)>=0||p.id.toLowerCase()===t||p.nick.toLowerCase().indexOf(t)>=0;
+      return !t||p.name.toLowerCase().indexOf(t)>=0||p.id.toLowerCase()===t||p.nick.toLowerCase().indexOf(t)>=0||(p.email||'').indexOf(t)>=0;
     });
   }
+  function selCount(){return Object.keys(S.sel).length}
   function draw(){
     var cnt={};S.people.forEach(function(p){if(p.status==='active'){if(!p.cls.length)cnt._none=(cnt._none||0)+1;p.cls.forEach(function(c){cnt[c]=(cnt[c]||0)+1})}});
-    var h='<span class="chip'+(S.cls===''?' on':'')+'" data-c="">ทั้งหมด</span>';
+    $('fD').innerHTML='<option value="">ทุกแผนก</option>'+S.depts.filter(function(d){return S.classes.some(function(c){return c.deptId===d.deptId})}).map(function(d){return '<option value="'+d.deptId+'"'+(S.dept===d.deptId?' selected':'')+'>แผนก'+esc(d.name)+'</option>'}).join('');
+    var h='<span class="chip'+(S.cls===''?' on':'')+'" data-c="">ทุกชั้น</span>';
     S.depts.forEach(function(d){
+      if(S.dept&&S.dept!==d.deptId)return;
       var cs=S.classes.filter(function(c){return c.deptId===d.deptId});if(!cs.length)return;
       h+='<div style="width:100%;margin-top:4px"><small><b>แผนก'+esc(d.name)+'</b></small></div>';
       cs.forEach(function(c){h+='<span class="chip'+(S.cls===c.classId?' on':'')+'" data-c="'+c.classId+'">'+esc(c.name)+' ('+(cnt[c.classId]||0)+')</span>'});
     });
-    if(S.canEdit)h+='<div style="width:100%;margin-top:4px"><small><b>อื่น ๆ</b></small></div><span class="chip'+(S.cls==='_none'?' on':'')+'" data-c="_none">ครู/บุคลากร/ยังไม่มีชั้น ('+(cnt._none||0)+')</span>';
+    if(S.canEdit)h+='<div style="width:100%;margin-top:4px"><small><b>อื่น ๆ</b></small></div><span class="chip'+(S.cls==='_none'?' on':'')+'" data-c="_none">ยังไม่มีชั้น ('+(cnt._none||0)+')</span>';
     $('chips').innerHTML=h;
     $('chips').querySelectorAll('.chip').forEach(function(c){c.onclick=function(){S.cls=c.dataset.c;S.sel={};$('all').checked=false;draw()}});
     var L=shown();$('cnt').textContent=L.length+' รายการ';
     $('list').innerHTML=L.length?L.map(function(p){
-      var tags=p.type==='student'?(p.cls.length?p.cls.map(function(c){return '<span class="tag">'+esc(cname(c))+'</span>'}).join(' '):'<span class="tag">ไม่มีชั้น</span>'):'<span class="tag">'+esc(TYPE[p.type])+'</span>';
-      return '<div class="row"><input type="checkbox" data-s="'+p.id+'" style="width:auto"'+(S.sel[p.id]?' checked':'')+'>'+
-        '<div class="n" data-e="'+p.id+'" style="cursor:pointer"><b>'+esc(p.name)+'</b><small>'+esc(p.id)+(p.nick?' · '+esc(p.nick):'')+'</small></div>'+
-        '<span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:55%">'+tags+(ST[p.status]?' <span class="tag">'+ST[p.status]+'</span>':'')+'</span></div>';
+      var tags=p.cls.length?p.cls.map(function(c){return '<span class="tag">'+esc(cname(c))+'</span>'}).join(' '):(p.type==='student'?'<span class="tag">ไม่มีชั้น</span>':'');
+      var tp=p.type!=='student'?'<span class="tag" style="border-color:var(--accent);color:var(--accent)">'+esc(TYPE[p.type])+'</span> ':'';
+      return '<div class="row" style="flex-wrap:wrap"><input type="checkbox" data-s="'+p.id+'" style="width:auto"'+(S.sel[p.id]?' checked':'')+'>'+
+        '<div class="n" data-e="'+p.id+'" style="cursor:pointer;min-width:140px"><b>'+esc(p.name)+'</b><small>'+esc(p.id)+(p.nick?' · '+esc(p.nick):'')+(p.email?' · '+esc(p.email):'')+'</small></div>'+
+        '<span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex:1;min-width:120px">'+tp+tags+(ST[p.status]?' <span class="tag">'+ST[p.status]+'</span>':'')+'</span>'+
+        (S.canEdit?'<button type="button" data-e="'+p.id+'" style="padding:4px 10px">แก้ไข</button>':'')+'</div>';
     }).join(''):'<p>ไม่พบรายชื่อ'+(S.canEdit?' กด "+ เพิ่ม" หรือ "นำเข้า" เพื่อเริ่มต้น':'')+'</p>';
-    $('list').querySelectorAll('[data-s]').forEach(function(c){c.onchange=function(){c.checked?S.sel[c.dataset.s]=1:delete S.sel[c.dataset.s]}});
+    $('list').querySelectorAll('[data-s]').forEach(function(c){c.onchange=function(){c.checked?S.sel[c.dataset.s]=1:delete S.sel[c.dataset.s];bulkBar()}});
     $('list').querySelectorAll('[data-e]').forEach(function(c){c.onclick=function(){openP(c.dataset.e)}});
+    bulkBar();
   }
+  function bulkBar(){
+    var n=selCount();$('bulk').style.display=n&&S.canEdit?'':'none';$('bN').textContent='เลือก '+n+' คน';
+    $('bRes').style.display=S.status==='deleted'||S.status==='left'||S.status==='all'?'':'none';
+  }
+  $('fD').onchange=function(){S.dept=$('fD').value;S.cls='';draw()};
+  $('fT').onchange=function(){S.type=$('fT').value;draw()};
+  $('fS').onchange=function(){S.status=$('fS').value;S.sel={};draw()};
+  $('bClr').onclick=function(){S.sel={};$('all').checked=false;draw()};
+  function doBulk(patch,msg){
+    var ids=Object.keys(S.sel);if(!ids.length)return;
+    if(msg&&!confirm(msg.replace('{n}',ids.length)))return;
+    W.api('bulkUpdate',[ids,patch]).then(function(){S.sel={};$('all').checked=false;return load()},function(e){alert(e.message)});
+  }
+  $('bDel').onclick=function(){doBulk({status:'deleted'},'ลบ {n} คน ใช่ไหม (ซ่อนจากรายการ กู้คืนได้ ข้อมูลเช็คชื่อเดิมยังอยู่)')};
+  $('bRes').onclick=function(){doBulk({status:'active'},'กู้คืน {n} คนให้เป็นสถานะปกติใช่ไหม')};
+  $('bEdit').onclick=function(){
+    $('kT').textContent='แก้ไข '+selCount()+' คน';$('kMsg').textContent='';$('kType').value='';$('kSt').value='';
+    $('kBox').innerHTML=S.depts.map(function(d){
+      var cs=S.classes.filter(function(c){return c.deptId===d.deptId});if(!cs.length)return '';
+      return '<div class="row" style="border:0;padding:3px 0"><span style="width:110px;flex:none;color:var(--mut);font-size:14px">แผนก'+esc(d.name)+'</span><select data-d="'+d.deptId+'"><option value="">(ไม่เปลี่ยน)</option><option value="-">ถอดออกจากแผนกนี้</option>'+
+        cs.map(function(c){return '<option value="'+c.classId+'">ตั้งเป็น '+esc(c.name)+'</option>'}).join('')+'</select></div>';
+    }).join('');
+    $('dK').showModal();
+  };
+  $('kGo').onclick=function(){
+    var dept={};[].slice.call($('kBox').querySelectorAll('select')).forEach(function(x){if(x.value)dept[x.dataset.d]=x.value});
+    var patch={type:$('kType').value,status:$('kSt').value,dept:dept};
+    if(!patch.type&&!patch.status&&!Object.keys(dept).length){$('kMsg').textContent='ยังไม่ได้เลือกสิ่งที่จะเปลี่ยน';return}
+    $('kGo').disabled=true;$('kMsg').textContent='กำลังบันทึก...';
+    W.api('bulkUpdate',[Object.keys(S.sel),patch]).then(function(n){$('dK').close();S.sel={};$('all').checked=false;return load()},function(e){$('kMsg').textContent=e.message}).then(function(){$('kGo').disabled=false});
+  };
   $('q').oninput=draw;
   $('all').onchange=function(){S.sel={};if($('all').checked)shown().forEach(function(p){S.sel[p.id]=1});draw()};
   $('bCard').onclick=function(){
@@ -122,33 +179,44 @@ W.need(function(u){
   };
 
   /* ---- เพิ่ม/แก้ไข ---- */
-  function typeUI(){$('lCls').style.display=$('pType').value==='student'?'':'none'}
+  function typeUI(){
+    var t=$('pType').value;$('lCls').style.display='';
+    $('pClsLbl').textContent=t==='student'?'ชั้นที่เรียน (แผนกละ 1 ชั้น เรียนหลายแผนกได้)':'ชั้นที่สอน/ดูแล (เลือกได้หลายชั้น)';
+    $('lEmail').style.display=(t==='teacher'&&S.isOwner)?'':'none';
+    buildCls(currentCls());
+  }
+  function currentCls(){
+    return [].slice.call($('pClsBox').querySelectorAll('select,input[type=checkbox]')).filter(function(x){return x.type==='checkbox'?x.checked:x.value}).map(function(x){return x.value});
+  }
   $('pType').onchange=typeUI;
   function buildCls(sel){
+    var multi=$('pType').value!=='student';
     $('pClsBox').innerHTML=S.depts.map(function(d){
       var cs=S.classes.filter(function(c){return c.deptId===d.deptId});if(!cs.length)return '';
+      if(multi)return '<div style="margin:6px 0"><small><b>แผนก'+esc(d.name)+'</b></small><div>'+cs.map(function(c){return '<label style="margin:0;color:var(--ink);display:inline-flex;gap:6px;align-items:center;margin-right:12px"><input type="checkbox" value="'+c.classId+'" style="width:auto"'+(sel.indexOf(c.classId)>=0?' checked':'')+'> '+esc(c.name)+'</label>'}).join('')+'</div></div>';
       return '<div class="row" style="border:0;padding:3px 0"><span style="width:110px;flex:none;color:var(--mut);font-size:14px">แผนก'+esc(d.name)+'</span><select data-d="'+d.deptId+'"><option value="">(ไม่ได้เรียน)</option>'+
         cs.map(function(c){return '<option value="'+c.classId+'"'+(sel.indexOf(c.classId)>=0?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select></div>';
     }).join('');
-    $('pClsBox').querySelectorAll('select').forEach(function(x){x.disabled=!S.canEdit});
+    $('pClsBox').querySelectorAll('select,input').forEach(function(x){x.disabled=!S.canEdit});
   }
   function openP(id){
     var p=id?S.people.filter(function(x){return x.id===id})[0]:null;
     S.edit=p;
-    var pre=p?p.cls:(S.cls&&S.cls!=='_none'?[S.cls]:[]);buildCls(pre);
     $('pT').textContent=p?('แก้ไข '+p.id):'เพิ่มบุคคล';
     $('pName').value=p?p.name:'';$('pNick').value=p?p.nick:'';$('pType').value=p?p.type:'student';
-    $('pSt').value=p?p.status:'active';$('pNote').value=p?p.note:'';
-    $('pMsg').textContent='';typeUI();
-    ['pName','pNick','pType','pSt','pNote','pSave'].forEach(function(i){$(i).disabled=!S.canEdit});
+    $('pSt').value=p?p.status:'active';$('pNote').value=p?p.note:'';$('pEmail').value=p?(p.email||''):'';
+    $('pMsg').textContent='';
+    var pre=p?p.cls:(S.cls&&S.cls!=='_none'?[S.cls]:[]);
+    $('lCls').style.display='';buildCls(pre);typeUI2(pre);
+    ['pName','pNick','pType','pSt','pNote','pEmail','pSave'].forEach(function(i){$(i).disabled=!S.canEdit});
     $('pSave').style.display=S.canEdit?'':'none';$('pCard').style.display=p?'':'none';
     $('dP').showModal();
   }
+  function typeUI2(pre){var t=$('pType').value;$('pClsLbl').textContent=t==='student'?'ชั้นที่เรียน (แผนกละ 1 ชั้น เรียนหลายแผนกได้)':'ชั้นที่สอน/ดูแล (เลือกได้หลายชั้น)';$('lEmail').style.display=(t==='teacher'&&S.isOwner)?'':'none';buildCls(pre)}
   $('bAdd').onclick=function(){openP(null)};
   $('pCard').onclick=function(){if(S.edit)location.href='cards.html?ids='+S.edit.id};
   $('pSave').onclick=function(){
-    var cls=[].slice.call($('pClsBox').querySelectorAll('select')).map(function(x){return x.value}).filter(Boolean);
-    var d={id:S.edit?S.edit.id:'',name:$('pName').value,nick:$('pNick').value,type:$('pType').value,cls:cls,status:$('pSt').value,note:$('pNote').value};
+    var d={id:S.edit?S.edit.id:'',name:$('pName').value,nick:$('pNick').value,type:$('pType').value,cls:currentCls(),status:$('pSt').value,note:$('pNote').value,email:$('pEmail').value};
     $('pSave').disabled=true;$('pMsg').textContent='กำลังบันทึก...';
     W.api('savePerson',[d]).then(function(){$('dP').close();return load()},function(e){$('pMsg').textContent=e.message}).then(function(){$('pSave').disabled=false});
   };
@@ -164,7 +232,7 @@ W.need(function(u){
   }
   function parse(){
     var lines=$('iTxt').value.replace(/^﻿/,'').split(/\r?\n/).filter(function(l){return l.trim()});
-    var rows=lines.map(function(l){var c=splitLine(l).map(function(x){return x.trim()});return{name:c[0]||'',nick:c[1]||'',type:c[2]||'',className:c[3]||'',note:c[4]||''}});
+    var rows=lines.map(function(l){var c=splitLine(l).map(function(x){return x.trim()});return{name:c[0]||'',nick:c[1]||'',type:c[2]||'',className:c[3]||'',note:c[4]||'',email:c[5]||''}});
     if(rows.length&&/^(ชื่อ|name)/i.test(rows[0].name))rows.shift();
     return rows;
   }
@@ -175,24 +243,25 @@ W.need(function(u){
       r.onload=function(){try{
         var wb=XLSX.read(r.result,{type:'array'});var n=wb.SheetNames.indexOf('รายชื่อ')>=0?'รายชื่อ':wb.SheetNames[0];
         var a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
-        done(a.map(function(x){return [0,1,2,3,4].map(function(i){return String(x[i]==null?'':x[i]).replace(/[\t\r\n]+/g,' ')}).join('\t')}).join('\n'));
+        done(a.map(function(x){return [0,1,2,3,4,5].map(function(i){return String(x[i]==null?'':x[i]).replace(/[\t\r\n]+/g,' ')}).join('\t')}).join('\n'));
       }catch(e){$('iMsg').textContent='อ่านไฟล์ไม่ได้: '+e.message}};
       r.readAsArrayBuffer(f);
     }else{r.onload=function(){done(r.result)};r.readAsText(f,'utf-8')}
   };
-  $('bImp').onclick=function(){$('iTxt').value='';$('iPrev').innerHTML='';$('iMsg').textContent='';$('iFile').value='';$('iGo').disabled=true;$('dI').showModal()};
+  $('bImp').onclick=function(){$('iTxt').value='';$('iPrev').innerHTML='';$('iMsg').textContent='';$('iFile').value='';$('iUpd').checked=false;$('iGo').disabled=true;$('dI').showModal()};
   function runImp(commit){
     var rows=parse();if(!rows.length){$('iMsg').textContent='ไม่มีข้อมูล';return Promise.resolve()}
     $('iMsg').textContent='กำลังทำงาน...';$('iChk').disabled=$('iGo').disabled=true;
-    return W.api('importPeople',[rows,commit]).then(function(r){
+    return W.api('importPeople',[rows,commit,$('iUpd').checked]).then(function(r){
       var bad=r.rows.filter(function(x){return !x.ok}).length;
-      $('iPrev').innerHTML=r.rows.map(function(x){return '<div class="row"><span class="n">'+esc(x.name||'(ว่าง)')+' <small>'+esc(x.classLabel||x.className)+'</small></span><span class="'+(x.ok?'ok':'err')+'">'+(x.ok?(commit?'เพิ่มแล้ว '+esc(x.id):'พร้อมเพิ่ม'):esc(x.msg))+'</span></div>'}).join('');
-      $('iMsg').innerHTML='<span class="'+(bad?'err':'ok')+'">'+(commit?'นำเข้าแล้ว ':'พร้อมนำเข้า ')+r.added+' รายการ'+(bad?' · ข้าม '+bad+' รายการ':'')+'</span>';
-      $('iGo').disabled=commit||!r.added;
+      $('iPrev').innerHTML=r.rows.map(function(x){var lab=!x.ok?esc(x.msg):(x.action==='update'?(commit?'อัปเดตแล้ว ':'จะอัปเดต ')+esc(x.id):(commit?'เพิ่มแล้ว '+esc(x.id):'จะเพิ่มใหม่'));
+        return '<div class="row"><span class="n">'+esc(x.name||'(ว่าง)')+' <small>'+esc(x.type?TYPE[x.type]+' · ':'')+esc(x.classLabel||x.className)+'</small>'+(x.warn?'<small class="err">'+esc(x.warn)+'</small>':'')+'</span><span class="'+(x.ok?'ok':'err')+'">'+lab+'</span></div>'}).join('');
+      $('iMsg').innerHTML='<span class="'+(bad?'err':'ok')+'">'+(commit?'นำเข้าแล้ว ':'พร้อมนำเข้า ')+'เพิ่มใหม่ '+r.added+' · อัปเดต '+r.updated+(bad?' · ข้าม '+bad+' รายการ':'')+'</span>';
+      $('iGo').disabled=commit||!(r.added||r.updated);
       if(commit){$('iTxt').value='';return load()}
     },function(e){$('iMsg').textContent=e.message;$('iGo').disabled=true}).then(function(){$('iChk').disabled=false});
   }
-  $('iChk').onclick=function(){runImp(false)};
+  $('iChk').onclick=function(){runImp(false)};$('iUpd').onchange=function(){$('iGo').disabled=true};
   $('iGo').onclick=function(){runImp(true)};
 
   /* ---- แผนกและชั้นเรียน ---- */
