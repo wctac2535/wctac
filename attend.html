@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>เช็คชื่อ</title>
+<link rel="stylesheet" href="app.css?v=a1">
+</head>
+<body>
+<main style="max-width:640px">
+  <div class="bar"><a class="btn" href="index.html">←</a><h1>เช็คชื่อ</h1><span class="sp"></span><a class="btn" href="attend-report.html">รายงาน</a></div>
+  <div class="tabs"><button id="tChk" class="on">เช็คชื่อ</button><button id="tOv">ภาพรวมวัน</button></div>
+
+  <div id="vChk">
+    <div class="card">
+      <select id="cls"></select>
+      <div class="bar" style="margin-top:8px"><button id="dPrev">◀</button><input type="date" id="date" style="flex:1"><button id="dNext">▶</button><button id="dToday">วันนี้</button></div>
+      <p id="dLbl" style="margin:6px 0 0"></p>
+      <div class="tabs" id="ses"></div>
+      <p><small><a href="#" id="bSet">ตั้งค่าชั้น (รอบเรียน / วันเรียน)</a></small></p>
+    </div>
+    <div class="card" id="box"></div>
+    <div class="sticky" id="foot" style="display:none">
+      <div class="cnts" id="cnts"></div>
+      <div class="bar"><button id="bAll">มาทั้งหมด</button><button id="bNo">ไม่มีเรียน</button><span class="sp"></span><button class="p" id="bSave" style="min-width:110px">บันทึก</button></div>
+      <p id="msg" style="margin:6px 0 0"></p>
+    </div>
+  </div>
+
+  <div id="vOv" style="display:none">
+    <div class="card"><div class="bar"><input type="date" id="oDate" style="flex:1"><button id="oToday">วันนี้</button></div><div id="oList" style="margin-top:8px"></div></div>
+  </div>
+</main>
+
+<dialog id="dS"><form method="dialog">
+  <h2 id="sT">ตั้งค่าชั้น</h2>
+  <label>รอบที่เปิดเช็คชื่อ</label>
+  <div class="bar"><label style="margin:0;color:var(--ink)"><input type="checkbox" data-s="M" style="width:auto"> เช้า</label><label style="margin:0;color:var(--ink)"><input type="checkbox" data-s="A" style="width:auto"> บ่าย</label><label style="margin:0;color:var(--ink)"><input type="checkbox" data-s="E" style="width:auto"> ภาคค่ำ</label></div>
+  <label>วันเรียนปกติ (ใช้เตือนวันที่ยังไม่ได้เช็ค ไม่บังคับ เช็ควันอื่นได้เสมอ)</label>
+  <div class="bar" id="wd"></div>
+  <p id="sMsg" class="err"></p>
+  <div class="bar"><button type="button" class="p" id="sSave">บันทึก</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<script src="config.js"></script>
+<script src="common.js?v=a1"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc;
+  var SN={M:'เช้า',A:'บ่าย',E:'ภาคค่ำ'}, DN=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'], MN=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var S={classes:[],A:null,ses:'M',marks:{},noClass:false,dirty:false};
+  document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=function(){b.closest('dialog').close()}});
+  function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+  function shift(ds,n){var p=ds.split('-');var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n));return d.toISOString().slice(0,10)}
+  function label(ds){var p=ds.split('-'),d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));return 'วัน'+DN[d.getUTCDay()]+'ที่ '+(+p[2])+' '+MN[+p[1]-1]+' '+(+p[0]+543)}
+  function guard(){return !S.dirty||confirm('ยังไม่ได้บันทึก ต้องการทิ้งการเปลี่ยนแปลงไหม')}
+  window.addEventListener('beforeunload',function(e){if(S.dirty){e.preventDefault();e.returnValue=''}});
+
+  W.api('listClasses').then(function(r){
+    S.classes=r;
+    if(!r.length){$('box').innerHTML='<p>ยังไม่มีชั้นเรียนที่คุณเช็คชื่อได้ ให้เจ้าของระบบใส่อีเมลของคุณเป็นครูประจำชั้นที่ ทะเบียนบุคคล → ชั้นเรียน</p>';return}
+    $('cls').innerHTML=r.map(function(c){return '<option value="'+c.classId+'">'+esc(c.name)+'</option>'}).join('');
+    try{var last=localStorage.getItem('wctac_cls');if(last&&r.some(function(c){return c.classId===last}))$('cls').value=last}catch(e){}
+    $('date').value=today();$('oDate').value=today();load();
+  },function(e){$('box').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+
+  function load(keepSes){
+    var cid=$('cls').value,d=$('date').value;if(!cid||!d)return;
+    $('box').innerHTML='กำลังโหลด...';$('foot').style.display='none';
+    W.api('getAttendance',[cid,d]).then(function(a){
+      S.A=a;if(!keepSes||a.cls.sessions.indexOf(S.ses)<0)S.ses=a.cls.sessions[0];
+      drawSes();pick();
+    },function(e){$('box').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function drawSes(){
+    var a=S.A;$('dLbl').innerHTML='<b>'+esc(label($('date').value))+'</b>'+(a.expected?'':' <small>(ไม่ใช่วันเรียนปกติของชั้นนี้)</small>');
+    $('ses').innerHTML=a.cls.sessions.map(function(k){return '<button data-k="'+k+'" class="'+(S.ses===k?'on':'')+'">'+SN[k]+(a.sessions[k].saved?' ✓':'')+'</button>'}).join('');
+    $('ses').style.display=a.cls.sessions.length>1?'':'none';
+    $('ses').querySelectorAll('button').forEach(function(b){b.onclick=function(){if(!guard())return;S.ses=b.dataset.k;drawSes();pick()}});
+  }
+  function pick(){
+    var x=S.A.sessions[S.ses];S.marks={};
+    Object.keys(x.marks).forEach(function(id){S.marks[id]={s:x.marks[id].s,n:x.marks[id].n}});
+    S.noClass=x.noClass;S.dirty=false;draw();
+  }
+  function counts(){
+    var c={P:0,L:0,E:0,A:0,none:0};
+    S.A.roster.forEach(function(r){var m=S.marks[r.id];m?c[m.s]++:c.none++});return c;
+  }
+  function draw(){
+    var a=S.A,x=a.sessions[S.ses];$('foot').style.display='';
+    if(!a.roster.length){$('box').innerHTML='<p>ชั้นนี้ยังไม่มีนักเรียน</p>';$('foot').style.display='none';return}
+    if(S.noClass){
+      $('box').innerHTML='<p><b>บันทึกว่า "ไม่มีเรียน" รอบ'+SN[S.ses]+'</b><br><small>วันนี้จะไม่ถูกนับในรายงาน</small></p><button id="bUndo">ยกเลิก เช็คชื่อตามปกติ</button>';
+      $('bUndo').onclick=function(){S.noClass=false;S.dirty=true;draw()};
+      $('cnts').innerHTML='';$('bAll').style.display=$('bNo').style.display='none';
+    }else{
+      $('bAll').style.display=$('bNo').style.display='';
+      $('box').innerHTML=a.roster.map(function(r){
+        var m=S.marks[r.id];
+        return '<div class="stu"><div class="nm">'+esc(r.name)+(r.nick?' <small>('+esc(r.nick)+')</small>':'')+(r.moved?' <small>(ย้ายชั้นแล้ว)</small>':'')+'</div><div class="seg" data-r="'+r.id+'">'+
+          [['P','มา'],['L','สาย'],['E','ลา'],['A','ขาด']].map(function(p){return '<button type="button" data-v="'+p[0]+'" class="'+(m&&m.s===p[0]?'on-'+p[0]:'')+'">'+p[1]+'</button>'}).join('')+'</div>'+
+          (m&&m.s==='E'?'<input class="nt" data-n="'+r.id+'" placeholder="หมายเหตุการลา (ไม่บังคับ)" value="'+esc(m.n||'')+'" maxlength="100">':'')+'</div>';
+      }).join('');
+      $('box').querySelectorAll('.seg').forEach(function(sg){sg.querySelectorAll('button').forEach(function(b){b.onclick=function(){
+        var id=sg.dataset.r,cur=S.marks[id];S.marks[id]={s:b.dataset.v,n:b.dataset.v==='E'&&cur?cur.n:''};S.dirty=true;draw();
+      }})});
+      $('box').querySelectorAll('input.nt').forEach(function(i){i.oninput=function(){S.marks[i.dataset.n].n=i.value;S.dirty=true}});
+      var c=counts();
+      $('cnts').innerHTML='<span class="ok">มา '+c.P+'</span><span style="color:#ef8f00">สาย '+c.L+'</span><span style="color:#1565c0">ลา '+c.E+'</span><span class="err">ขาด '+c.A+'</span>'+(c.none?'<span>ยังไม่เช็ค '+c.none+'</span>':'');
+    }
+    $('msg').innerHTML=x.saved?'<small>บันทึกล่าสุดโดย '+esc(x.by)+'</small>':'';
+  }
+  $('bAll').onclick=function(){S.A.roster.forEach(function(r){if(!S.marks[r.id])S.marks[r.id]={s:'P',n:''}});S.dirty=true;draw()};
+  $('bNo').onclick=function(){if(confirm('บันทึกว่ารอบนี้ "ไม่มีเรียน" ใช่ไหม (จะไม่ถูกนับเป็นขาด)')){S.noClass=true;S.dirty=true;draw()}};
+  $('bSave').onclick=function(){
+    var entries=S.A.roster.filter(function(r){return S.marks[r.id]}).map(function(r){return {id:r.id,status:S.marks[r.id].s,note:S.marks[r.id].n||''}});
+    if(!S.noClass&&entries.length<S.A.roster.length){$('msg').innerHTML='<span class="err">ยังไม่ได้เช็คอีก '+(S.A.roster.length-entries.length)+' คน (กด "มาทั้งหมด" แล้วแก้เฉพาะคนที่ไม่มา)</span>';return}
+    $('bSave').disabled=true;$('msg').textContent='กำลังบันทึก...';
+    W.api('saveAttendance',[$('cls').value,$('date').value,S.ses,entries,S.noClass]).then(function(){
+      S.dirty=false;return W.api('getAttendance',[$('cls').value,$('date').value]);
+    }).then(function(a){S.A=a;drawSes();draw();$('msg').innerHTML='<span class="ok">บันทึกแล้ว ✓</span>'},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'}).then(function(){$('bSave').disabled=false});
+  };
+  $('cls').onchange=function(){if(!guard()){return}try{localStorage.setItem('wctac_cls',$('cls').value)}catch(e){}load()};
+  $('date').onchange=function(){if(guard())load();};
+  $('dPrev').onclick=function(){if(guard()){$('date').value=shift($('date').value,-1);load()}};
+  $('dNext').onclick=function(){if(guard()){$('date').value=shift($('date').value,1);load()}};
+  $('dToday').onclick=function(){if(guard()){$('date').value=today();load()}};
+
+  /* ตั้งค่าชั้น */
+  $('wd').innerHTML=[1,2,3,4,5,6,0].map(function(d){return '<label style="margin:0;color:var(--ink)"><input type="checkbox" data-w="'+d+'" style="width:auto"> '+DN[d].replace('วัน','')+'</label>'}).join('');
+  $('bSet').onclick=function(e){e.preventDefault();if(!S.A)return;
+    $('sT').textContent='ตั้งค่า '+S.A.cls.name;$('sMsg').textContent='';
+    $('dS').querySelectorAll('[data-s]').forEach(function(c){c.checked=S.A.cls.sessions.indexOf(c.dataset.s)>=0});
+    $('dS').querySelectorAll('[data-w]').forEach(function(c){c.checked=S.A.cls.weekdays.indexOf(+c.dataset.w)>=0});
+    $('dS').showModal()};
+  $('sSave').onclick=function(){
+    var ses=[].slice.call($('dS').querySelectorAll('[data-s]')).filter(function(c){return c.checked}).map(function(c){return c.dataset.s});
+    var wd=[].slice.call($('dS').querySelectorAll('[data-w]')).filter(function(c){return c.checked}).map(function(c){return +c.dataset.w});
+    W.api('saveClassSettings',[$('cls').value,ses,wd]).then(function(){$('dS').close();S.dirty=false;load()},function(e){$('sMsg').textContent=e.message});
+  };
+
+  /* ภาพรวมวัน */
+  function ov(){
+    $('oList').textContent='กำลังโหลด...';
+    W.api('getDaily',[$('oDate').value]).then(function(L){
+      $('oList').innerHTML='<p><b>'+esc(label($('oDate').value))+'</b></p>'+L.map(function(c){
+        return '<div class="row" style="flex-wrap:wrap"><div class="n"><b>'+esc(c.name)+'</b><small>'+c.total+' คน'+(c.expected?'':' · ไม่ใช่วันเรียนปกติ')+'</small></div>'+c.sessions.map(function(x){
+          var t=x.noClass?'ไม่มีเรียน':x.checked?'มา '+x.counts.P+' สาย '+x.counts.L+' ลา '+x.counts.E+' ขาด '+x.counts.A:(c.expected?'ยังไม่เช็ค':'—');
+          return '<a class="tag btn" data-c="'+c.classId+'" data-k="'+x.k+'" style="'+(!x.checked&&!x.noClass&&c.expected?'color:var(--err)':'')+'">'+SN[x.k]+': '+t+'</a>'}).join(' ')+'</div>';
+      }).join('');
+      $('oList').querySelectorAll('[data-c]').forEach(function(a){a.onclick=function(){$('cls').value=a.dataset.c;S.ses=a.dataset.k;$('date').value=$('oDate').value;show('chk');load(true)}});
+    },function(e){$('oList').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function show(v){$('vChk').style.display=v==='chk'?'':'none';$('vOv').style.display=v==='ov'?'':'none';$('tChk').className=v==='chk'?'on':'';$('tOv').className=v==='ov'?'on':''}
+  $('tChk').onclick=function(){show('chk')};
+  $('tOv').onclick=function(){if(!guard())return;S.dirty=false;show('ov');ov()};
+  $('oDate').onchange=ov;$('oToday').onclick=function(){$('oDate').value=today();ov()};
+});
+</script>
+</body>
+</html>

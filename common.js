@@ -1,6 +1,6 @@
 (function(){
   var C=window.WCTAC, KEY='wctac_session', W=window.W={};
-  W.ROLE={owner:'เจ้าของระบบ',librarian:'ผู้ดูแลห้องสมุด',teacher:'ครู',viewer:'ผู้ชม'};
+  W.ROLE={owner:'เจ้าของระบบ',librarian:'ผู้ดูแลห้องสมุด',teacher:'ครูประจำชั้น',assistant:'ครูผู้ช่วย',viewer:'ผู้ชม'};
   W.token=function(){try{return localStorage.getItem(KEY)}catch(e){return null}};
   W.setToken=function(t){try{t?localStorage.setItem(KEY,t):localStorage.removeItem(KEY)}catch(e){}};
   W.esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};

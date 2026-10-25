@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>จัดการผู้ใช้</title>
-<link rel="stylesheet" href="app.css?v=l1c">
+<link rel="stylesheet" href="app.css?v=a1">
 </head>
 <body>
 <main>
@@ -13,16 +13,16 @@
     <p>เพิ่มอีเมล Gmail ของผู้ที่จะเข้าระบบ แล้วกำหนดบทบาท ปิดสิทธิ์ได้ทันทีโดยไม่ต้องลบ</p>
     <div id="list"></div>
     <div class="bar" style="margin-top:10px"><button id="bAdd">+ เพิ่มผู้ใช้</button><button id="bSave" class="p">บันทึก</button><span id="msg"></span></div>
-    <p><small><b>เจ้าของระบบ</b> จัดการได้ทุกอย่างรวมหน้านี้ · <b>ผู้ดูแลห้องสมุด</b> จัดการทะเบียนบุคคลและหนังสือ · <b>ครู</b> เห็นเฉพาะชั้นที่เป็นครูประจำชั้น (ตั้งที่ ทะเบียนบุคคล → ชั้นเรียน) · <b>ผู้ชม</b> เข้าสู่ระบบได้แต่ไม่เห็นข้อมูลทะเบียน</small></p>
+    <p><small><b>เจ้าของระบบ</b> จัดการได้ทุกอย่างรวมหน้านี้ · <b>ผู้ดูแลห้องสมุด</b> จัดการทะเบียนบุคคลและหนังสือ · <b>ครูประจำชั้น / ครูผู้ช่วย</b> เห็นและเช็คชื่อเฉพาะชั้นที่ถูกกำหนด (ตั้งที่ ทะเบียนบุคคล → ชั้นเรียน ใส่ได้หลายอีเมลต่อชั้น) · <b>ผู้ชม</b> เข้าสู่ระบบได้แต่ไม่เห็นข้อมูลทะเบียน</small></p>
   </div>
 </main>
 <script src="config.js"></script>
-<script src="common.js?v=l1c"></script>
+<script src="common.js?v=a1"></script>
 <script>
 W.need(function(u){
   var $=function(i){return document.getElementById(i)}, esc=W.esc, L=[];
   if(u.role!=='owner'){document.querySelector('main').innerHTML='<div class="card err">เฉพาะเจ้าของระบบ <a href="index.html">กลับ</a></div>';return}
-  var RO=['owner','librarian','teacher','viewer'];
+  var RO=['owner','librarian','teacher','assistant','viewer'];
   function draw(){
     $('list').innerHTML=L.map(function(x,i){
       return '<div class="card" style="margin-top:8px;padding:12px'+(x.active===false?';opacity:.6':'')+'">'+

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ทะเบียนบุคคล</title>
-<link rel="stylesheet" href="app.css?v=l1c">
+<link rel="stylesheet" href="app.css?v=a1">
 </head>
 <body>
 <main>
@@ -52,7 +52,7 @@
   <h2>ชั้นเรียน</h2>
   <div id="cList"></div>
   <div class="bar" id="cOwner" style="margin-top:8px"><button type="button" id="cAdd">+ เพิ่มชั้น</button><button type="button" id="cSave" class="p">บันทึกชั้นเรียน</button></div>
-  <p><small>ครูประจำชั้น: ใส่อีเมลครูที่อยู่ในรายชื่อผู้ใช้ (แท็บ Staff) บทบาท "ครู" เพื่อให้เห็นเฉพาะชั้นตน</small></p>
+  <p><small>ครูประจำชั้น/ครูผู้ช่วย: ใส่อีเมลที่เพิ่มไว้ในหน้า จัดการผู้ใช้ (หลายคนต่อชั้นได้ คั่นด้วยจุลภาค) เพื่อให้เห็นและเช็คชื่อเฉพาะชั้นนั้น</small></p>
   <hr style="border:0;border-top:1px solid var(--bd)">
   <h2>เลื่อนชั้นทั้งชั้น</h2>
   <div class="g2"><label>จากชั้น<select id="mFrom"></select></label><label>ไปชั้น<select id="mTo"></select></label></div>
@@ -63,7 +63,7 @@
 </form></dialog>
 
 <script src="config.js"></script>
-<script src="common.js?v=l1c"></script>
+<script src="common.js?v=a1"></script>
 <script>
 W.need(function(u){
   var $=function(i){return document.getElementById(i)}, esc=W.esc;
@@ -179,7 +179,7 @@ W.need(function(u){
     var own=u.role==='owner';
     $('cList').innerHTML=CL.map(function(c,i){
       return '<div class="row"><b style="width:1.8em">'+(i+1)+'</b>'+
-        (own?'<input data-n="'+i+'" value="'+esc(c.name)+'" maxlength="40" style="flex:1"><input data-t="'+i+'" value="'+esc(c.teacherEmail||'')+'" placeholder="อีเมลครูประจำชั้น" style="flex:1">'+
+        (own?'<input data-n="'+i+'" value="'+esc(c.name)+'" maxlength="40" style="flex:1"><input data-t="'+i+'" value="'+esc(c.teacherEmail||'')+'" placeholder="อีเมลครู/ครูผู้ช่วย (หลายคนคั่นด้วยจุลภาค)" style="flex:1">'+
           '<button type="button" data-u="'+i+'">↑</button><button type="button" data-x="'+i+'" class="d">ลบ</button>'
         :'<span class="n">'+esc(c.name)+' <small>('+(c.count||0)+' คน)</small></span>')+'</div>';
     }).join('');

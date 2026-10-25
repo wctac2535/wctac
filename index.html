@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>wctac</title>
-<link rel="stylesheet" href="app.css?v=l1c">
+<link rel="stylesheet" href="app.css?v=a1">
 </head>
 <body>
 <main style="max-width:480px">
@@ -21,21 +21,22 @@
   <p style="margin-top:24px"><small id="ver"></small></p>
 </main>
 <script src="config.js"></script>
-<script src="common.js?v=l1c"></script>
+<script src="common.js?v=a1"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 (function(){
   var C=window.WCTAC, box=document.getElementById('box'), esc=W.esc;
   if(/Line\//i.test(navigator.userAgent)) document.getElementById('lineWarn').style.display='block';
   function showUser(u){
-    var canReg=(u.role==='owner'||u.role==='librarian'||u.role==='teacher');
+    var canReg=(u.role==='owner'||u.role==='librarian'||u.role==='teacher'||u.role==='assistant');
     box.innerHTML='<b class="ok">เข้าสู่ระบบแล้ว ✓</b><p>'+esc(u.name)+' · '+esc(u.email)+'<br>บทบาท: '+esc(W.ROLE[u.role]||u.role)+'</p>'+
       '<div class="menu">'+
       '<a href="people.html" class="'+(canReg?'':'off')+'"><b>ทะเบียนบุคคล</b><br><small>นักเรียน ครู ชั้นเรียน บัตร QR</small></a>'+
       '<a href="library.html" class="'+((u.role==='owner'||u.role==='librarian')?'':'off')+'"><b>จัดการหนังสือ</b><br><small>ทะเบียนหนังสือ นำเข้า Excel ป้าย QR</small></a>'+
       (u.role==='owner'?'<a href="users.html"><b>จัดการผู้ใช้</b><br><small>เพิ่ม/ปิดสิทธิ์ผู้ดูแล ครู</small></a>':'')+
       '<a href="search.html"><b>ค้นหาหนังสือ</b><br><small>ดูว่ามีเล่มไหน ว่างหรือไม่</small></a>'+
-      '<a class="off"><b>เช็คชื่อ</b><br><small>เร็ว ๆ นี้</small></a></div>'+
+      '<a href="attend.html" class="'+(canReg?'':'off')+'"><b>เช็คชื่อ</b><br><small>เช็คชื่อเข้าเรียนรายชั้น</small></a>'+
+      '<a href="attend-report.html" class="'+(canReg?'':'off')+'"><b>รายงานเช็คชื่อ</b><br><small>รายเดือน พิมพ์ / Excel</small></a></div>'+
       '<p style="margin-top:14px"><button id="bOut">ออกจากระบบ</button></p>';
     document.getElementById('bOut').onclick=W.logout;
     document.getElementById('alt').style.display='none';

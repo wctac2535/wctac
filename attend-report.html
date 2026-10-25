@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>รายงานเช็คชื่อ</title>
+<link rel="stylesheet" href="app.css?v=a1">
+</head>
+<body>
+<main style="max-width:1100px">
+  <div class="bar noprint"><a class="btn" href="attend.html">← เช็คชื่อ</a><h1>รายงานเช็คชื่อรายเดือน</h1></div>
+  <div class="card noprint">
+    <div class="g2">
+      <label style="margin-top:0">ชั้น<select id="cls"></select></label>
+      <label style="margin-top:0">เดือน<input type="month" id="ym"></label>
+      <label>รอบ<select id="ses"></select></label>
+      <label><span style="display:block">&nbsp;</span><span class="bar"><button class="p" id="bGo">แสดง</button><button id="bPrint">พิมพ์ / PDF</button><button id="bXls">Excel</button></span></label>
+    </div>
+    <p id="msg"></p>
+  </div>
+  <div id="rep"></div>
+  <p class="noprint"><small>สัญลักษณ์: ✓ มา · ส สาย · ล ลา (* มีหมายเหตุ) · ✗ ขาด · % มาเรียน = (มา+สาย) ÷ จำนวนวันที่เช็คชื่อ (วันที่บันทึกว่า "ไม่มีเรียน" ไม่นับ)</small></p>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=a1"></script>
+<script src="lib/xlsx.mini.min.js"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, R=null;
+  var SN={M:'เช้า',A:'บ่าย',E:'ภาคค่ำ',ALL:'รวมทุกรอบ'}, MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  var SYM={P:'✓',L:'ส',E:'ล',A:'✗'}, CL;
+  var d=new Date();$('ym').value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);
+  function fillSes(){
+    var c=CL.filter(function(x){return x.classId===$('cls').value})[0];if(!c)return;
+    $('ses').innerHTML=c.sessions.map(function(k){return '<option value="'+k+'">'+SN[k]+'</option>'}).join('')+(c.sessions.length>1?'<option value="ALL">รวมทุกรอบ (สรุป)</option>':'');
+  }
+  W.api('listClasses').then(function(r){
+    CL=r;if(!r.length){$('msg').textContent='ยังไม่มีชั้นที่คุณดูรายงานได้';return}
+    $('cls').innerHTML=r.map(function(c){return '<option value="'+c.classId+'">'+esc(c.name)+'</option>'}).join('');
+    try{var l=localStorage.getItem('wctac_cls');if(l&&r.some(function(c){return c.classId===l}))$('cls').value=l}catch(e){}
+    fillSes();go();
+  },function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  $('cls').onchange=function(){fillSes();go()};$('ses').onchange=go;$('ym').onchange=go;$('bGo').onclick=go;
+  function pct(o){return o.classDays?Math.round((o.c.P+o.c.L)*1000/o.classDays)/10:null}
+  function go(){
+    if(!$('cls').value||!$('ym').value)return;
+    $('msg').textContent='กำลังโหลด...';$('rep').innerHTML='';
+    W.api('getMonthReport',[$('cls').value,$('ym').value,$('ses').value]).then(function(r){
+      R=r;$('msg').textContent='';draw();
+    },function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function draw(){
+    var r=R,all=r.session==='ALL',y=+r.ym.slice(0,4)+543,m=MN[+r.ym.slice(5,7)-1];
+    var h='<h2>รายงานการเช็คชื่อ ชั้น '+esc(r.cls.name)+' · '+m+' '+y+' · รอบ'+esc(SN[r.session])+'</h2><p>วัดพระธาตุศรีจอมทอง · จำนวนวันที่เช็คชื่อ '+(all?'(รวมทุกรอบ)':r.days.length+' วัน')+'</p>';
+    if(!r.students.length){$('rep').innerHTML=h+'<p>ไม่มีข้อมูล</p>';return}
+    h+='<div class="gridwrap"><table class="g"><thead><tr><th>ชื่อ</th>';
+    if(!all)r.days.forEach(function(x){h+='<th>'+(+x.slice(8))+'</th>'});
+    h+='<th>มา</th><th>สาย</th><th>ลา</th><th>ขาด</th><th>%</th></tr></thead><tbody>';
+    r.students.forEach(function(s){
+      h+='<tr><td>'+esc(s.name)+'</td>';
+      if(!all)r.days.forEach(function(x){var c=s.cells[x]||'';var k=c[0];h+='<td class="c-'+k+'">'+(c?SYM[k]+(c[1]||''):'')+'</td>'});
+      var p=pct(s);h+='<td>'+s.c.P+'</td><td>'+s.c.L+'</td><td>'+s.c.E+'</td><td>'+s.c.A+'</td><td>'+(p==null?'–':p)+'</td></tr>';
+    });
+    $('rep').innerHTML=h+'</tbody></table></div>';
+  }
+  $('bPrint').onclick=function(){window.print()};
+  $('bXls').onclick=function(){
+    if(!R)return;var r=R,all=r.session==='ALL';
+    var head=['ชื่อ'].concat(all?[]:r.days.map(function(x){return +x.slice(8)})).concat(['มา','สาย','ลา','ขาด','% มาเรียน']);
+    var rows=[['ชั้น '+r.cls.name+' · '+MN[+r.ym.slice(5,7)-1]+' '+(+r.ym.slice(0,4)+543)+' · รอบ'+SN[r.session]],head].concat(r.students.map(function(s){
+      var p=pct(s);return [s.name].concat(all?[]:r.days.map(function(x){var c=s.cells[x]||'';return c?SYM[c[0]]+(c[1]||''):''})).concat([s.c.P,s.c.L,s.c.E,s.c.A,p==null?'':p]);
+    }));
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'เช็คชื่อ');
+    XLSX.writeFile(wb,'เช็คชื่อ-'+r.cls.name+'-'+r.ym+'-'+r.session+'.xlsx');
+  };
+});
+</script>
+</body>
+</html>
