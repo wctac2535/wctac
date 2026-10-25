@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>จัดการผู้ใช้</title>
+<link rel="stylesheet" href="app.css?v=l1c">
+</head>
+<body>
+<main>
+  <div class="bar"><a class="btn" href="index.html">← หน้าแรก</a><h1>จัดการผู้ใช้</h1></div>
+  <div class="card">
+    <p>เพิ่มอีเมล Gmail ของผู้ที่จะเข้าระบบ แล้วกำหนดบทบาท ปิดสิทธิ์ได้ทันทีโดยไม่ต้องลบ</p>
+    <div id="list"></div>
+    <div class="bar" style="margin-top:10px"><button id="bAdd">+ เพิ่มผู้ใช้</button><button id="bSave" class="p">บันทึก</button><span id="msg"></span></div>
+    <p><small><b>เจ้าของระบบ</b> จัดการได้ทุกอย่างรวมหน้านี้ · <b>ผู้ดูแลห้องสมุด</b> จัดการทะเบียนบุคคลและหนังสือ · <b>ครู</b> เห็นเฉพาะชั้นที่เป็นครูประจำชั้น (ตั้งที่ ทะเบียนบุคคล → ชั้นเรียน) · <b>ผู้ชม</b> เข้าสู่ระบบได้แต่ไม่เห็นข้อมูลทะเบียน</small></p>
+  </div>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=l1c"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, L=[];
+  if(u.role!=='owner'){document.querySelector('main').innerHTML='<div class="card err">เฉพาะเจ้าของระบบ <a href="index.html">กลับ</a></div>';return}
+  var RO=['owner','librarian','teacher','viewer'];
+  function draw(){
+    $('list').innerHTML=L.map(function(x,i){
+      return '<div class="card" style="margin-top:8px;padding:12px'+(x.active===false?';opacity:.6':'')+'">'+
+        '<div class="g2"><label style="margin-top:0">อีเมล<input data-f="email" data-i="'+i+'" value="'+esc(x.email)+'" inputmode="email" autocapitalize="off"></label>'+
+        '<label style="margin-top:0">ชื่อที่แสดง<input data-f="name" data-i="'+i+'" value="'+esc(x.name)+'" maxlength="80"></label>'+
+        '<label>บทบาท<select data-f="role" data-i="'+i+'">'+RO.map(function(r){return '<option value="'+r+'"'+(x.role===r?' selected':'')+'>'+W.ROLE[r]+'</option>'}).join('')+'</select></label>'+
+        '<label><span style="display:block">&nbsp;</span><span class="bar"><label style="margin:0;color:var(--ink)"><input type="checkbox" data-f="active" data-i="'+i+'" style="width:auto"'+(x.active!==false?' checked':'')+'> ใช้งานอยู่</label><span class="sp"></span><button type="button" class="d" data-x="'+i+'">ลบ</button></span></label></div></div>';
+    }).join('');
+    $('list').querySelectorAll('[data-f]').forEach(function(el){
+      el.onchange=el.oninput=function(){var x=L[el.dataset.i];x[el.dataset.f]=el.type==='checkbox'?el.checked:el.value}
+    });
+    $('list').querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(){
+      var x=L[b.dataset.x];
+      if(x.email.toLowerCase()===u.email&&!confirm('นี่คือบัญชีของคุณเอง ลบแล้วจะเข้าไม่ได้ ต้องการลบจริงไหม'))return;
+      L.splice(b.dataset.x,1);draw()}});
+  }
+  function load(){W.api('getStaff').then(function(r){L=r;draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'})}
+  $('bAdd').onclick=function(){L.push({email:'',name:'',role:'librarian',active:true});draw();var e=$('list').querySelectorAll('[data-f=email]');e[e.length-1].focus()};
+  $('bSave').onclick=function(){
+    for(var i=0;i<L.length;i++){
+      L[i].email=String(L[i].email).trim().toLowerCase();
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(L[i].email)){$('msg').innerHTML='<span class="err">อีเมลแถวที่ '+(i+1)+' ไม่ถูกต้อง</span>';return}
+    }
+    var me=L.filter(function(x){return x.email===u.email})[0];
+    if(!me||me.active===false||me.role!=='owner'){if(!confirm('คุณกำลังปิดสิทธิ์หรือลดบทบาทของบัญชีตัวเอง หลังบันทึกจะไม่สามารถเข้าหน้านี้ได้อีก ต้องการทำต่อไหม'))return}
+    $('bSave').disabled=true;$('msg').textContent='กำลังบันทึก...';
+    W.api('saveStaff',[L]).then(function(n){$('msg').innerHTML='<span class="ok">บันทึกแล้ว '+n+' คน</span>';return W.api('getStaff')}).then(function(r){L=r;draw()},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'}).then(function(){$('bSave').disabled=false});
+  };
+  load();
+});
+</script>
+</body>
+</html>
