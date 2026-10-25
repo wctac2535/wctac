@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>แจ้งเตือน LINE</title>
+<link rel="stylesheet" href="app.css?v=n1">
+</head>
+<body data-title="สรุปเช็คชื่อเข้า LINE">
+<main style="max-width:720px">
+  <div class="bar"><a class="btn" href="index.html">← หน้าแรก</a><span class="sp"></span><small id="st"></small></div>
+
+  <div class="card">
+    <h2>การเชื่อมต่อ LINE</h2>
+    <div id="conn"></div>
+  </div>
+
+  <div class="card">
+    <h2>การส่งอัตโนมัติ</h2>
+    <label style="margin:0;color:var(--ink);display:flex;gap:8px;align-items:center"><input type="checkbox" id="oW" style="width:auto"> สรุปรายสัปดาห์ ทุกวันจันทร์ เวลา 08:00 (สัปดาห์ที่ผ่านมา จันทร์–อาทิตย์)</label>
+    <label style="color:var(--ink);display:flex;gap:8px;align-items:center"><input type="checkbox" id="oM" style="width:auto"> สรุปรายเดือน เที่ยงคืนต้นวันที่ 1 (เดือนที่เพิ่งจบ)</label>
+    <label>แจ้งชื่อนักเรียนที่ขาดติดต่อกัน (วันเรียน)<input id="oT" type="number" min="2" max="30" style="max-width:120px"></label>
+    <div class="bar" style="margin-top:10px"><button class="p" id="bSave">บันทึกการตั้งค่า</button><span id="mSave"></span></div>
+    <hr style="border:0;border-top:1px solid var(--bd);margin:14px 0">
+    <div id="trig"></div>
+    <p><small>ระบบตั้งเวลาของ Google ส่งภายใน 1 ชั่วโมงหลังเวลาที่กำหนด (08:00–09:00 และ 00:00–01:00) สรุปแต่ละสัปดาห์/เดือนส่งครั้งเดียว ไม่ส่งซ้ำ</small></p>
+  </div>
+
+  <div class="card">
+    <h2>ดูตัวอย่าง / ส่งเอง</h2>
+    <div class="g2">
+      <label style="margin-top:0">ชนิด<select id="pK"><option value="weekly">รายสัปดาห์</option><option value="monthly">รายเดือน</option></select></label>
+      <span></span>
+      <label>ตั้งแต่<input type="date" id="pF"></label><label>ถึง<input type="date" id="pT"></label>
+    </div>
+    <div class="bar" style="margin-top:10px"><button id="bPrev">ดูข้อความตัวอย่าง</button><button class="p" id="bSend" disabled>ส่งเข้า LINE ตอนนี้</button><span id="mPrev"></span></div>
+    <pre id="pre" style="white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:10px;font:14px/1.6 system-ui,'Noto Sans Thai',sans-serif;display:none"></pre>
+  </div>
+
+  <div class="card"><h2>ประวัติการส่งล่าสุด</h2><div id="log"></div></div>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=n1"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, ST=null;
+  if(u.role!=='owner'){document.querySelector('main').innerHTML='<div class="card err">เฉพาะเจ้าของระบบ <a href="index.html">กลับ</a></div>';return}
+  var KN={'auto-weekly':'อัตโนมัติ รายสัปดาห์','auto-monthly':'อัตโนมัติ รายเดือน','manual-weekly':'ส่งเอง รายสัปดาห์','manual-monthly':'ส่งเอง รายเดือน'};
+  function th(iso){try{return new Date(iso).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}catch(e){return iso}}
+  function load(){
+    return W.api('getNotifyStatus').then(function(r){
+      ST=r;
+      $('conn').innerHTML=(r.hasToken?'<p class="ok">✓ พบ LINE_TOKEN</p>':'<p class="err">✗ ยังไม่ได้ตั้ง LINE_TOKEN</p>')+(r.hasGroup?'<p class="ok">✓ พบ LINE_EXEC_GROUP (กลุ่มผู้บริหาร)</p>':'<p class="err">✗ ยังไม่ได้ตั้ง LINE_EXEC_GROUP</p>')+
+        ((r.hasToken&&r.hasGroup)?'':'<p><small>ตั้งใน Apps Script: โปรเจกต์ wctac → ⚙ Project Settings → Script properties คัดลอกค่าเดียวกับระบบรายงานการสอน</small></p>');
+      $('oW').checked=r.settings.weekly;$('oM').checked=r.settings.monthly;$('oT').value=r.settings.threshold;
+      var on=r.triggers.length===2;
+      $('trig').innerHTML='<p>สถานะตัวตั้งเวลา: '+(on?'<b class="ok">เปิดอยู่</b>':'<b class="err">ปิดอยู่</b> (ยังไม่ส่งอัตโนมัติ)')+'</p><p><small>สัปดาห์ล่าสุดที่ส่ง: '+esc(r.sentW||'—')+' · เดือนล่าสุดที่ส่ง: '+esc(r.sentM||'—')+'</small></p><button id="bTr" class="'+(on?'':'p')+'">'+(on?'ปิดการส่งอัตโนมัติ':'เปิดการส่งอัตโนมัติ')+'</button> <span id="mTr"></span>';
+      $('bTr').onclick=function(){
+        $('bTr').disabled=true;$('mTr').textContent='กำลังทำงาน...';
+        W.api(on?'removeTriggers':'installTriggers').then(load,function(e){$('mTr').innerHTML='<span class="err">'+esc(e.message)+'</span>';$('bTr').disabled=false});
+      };
+      $('log').innerHTML=r.log.length?r.log.map(function(x){return '<div class="row"><span class="n"><b>'+esc(KN[x.kind]||x.kind)+'</b><small>'+esc(th(x.time))+' · '+esc(x.note)+'</small></span><span class="'+(x.ok?'ok':'err')+'">'+(x.ok?'สำเร็จ':'ไม่สำเร็จ')+'</span></div>'}).join(''):'<p>ยังไม่เคยส่ง</p>';
+      setRange();
+    },function(e){$('st').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function setRange(){var g=ST.ranges[$('pK').value];$('pF').value=g.from;$('pT').value=g.to;$('bSend').disabled=true;$('pre').style.display='none'}
+  $('pK').onchange=setRange;
+  $('bSave').onclick=function(){
+    $('mSave').textContent='กำลังบันทึก...';
+    W.api('saveNotify',[{weekly:$('oW').checked,monthly:$('oM').checked,threshold:$('oT').value}]).then(function(){$('mSave').innerHTML='<span class="ok">บันทึกแล้ว</span>';return load()},function(e){$('mSave').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  };
+  $('bPrev').onclick=function(){
+    $('mPrev').textContent='กำลังสร้าง...';$('bSend').disabled=true;
+    W.api('previewSummary',[$('pK').value,$('pF').value,$('pT').value]).then(function(r){
+      $('pre').textContent=r.text;$('pre').style.display='block';$('mPrev').innerHTML='<small>ผู้ขาดติดต่อกัน '+r.alerts+' คน</small>';$('bSend').disabled=false;
+    },function(e){$('mPrev').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  };
+  $('bSend').onclick=function(){
+    if(!confirm('ส่งข้อความตัวอย่างนี้เข้ากลุ่มผู้บริหารตอนนี้ใช่ไหม'))return;
+    $('bSend').disabled=true;$('mPrev').textContent='กำลังส่ง...';
+    W.api('sendSummary',[$('pK').value,$('pF').value,$('pT').value]).then(function(r){
+      $('mPrev').innerHTML='<span class="'+(r.ok?'ok':'err')+'">'+esc(r.msg)+'</span>';return load();
+    },function(e){$('mPrev').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  };
+  load();
+});
+</script>
+</body>
+</html>
