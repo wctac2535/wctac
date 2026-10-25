@@ -6,7 +6,7 @@
 <title>ทะเบียนบุคคล · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=e1">
+<link rel="stylesheet" href="app.css?v=e2">
 </head>
 <body data-title="ทะเบียนบุคคล">
 <main>
@@ -38,7 +38,8 @@
     <label>ชื่อที่ใช้เรียก<input id="pNick" maxlength="40"></label>
     <label>ประเภท<select id="pType"><option value="student">นักเรียน</option><option value="teacher">ครู</option><option value="staff">บุคลากร</option></select></label>
     <div id="lCls" style="grid-column:1/-1"><label id="pClsLbl">ชั้นที่เรียน (แผนกละ 1 ชั้น เรียนหลายแผนกได้)</label><div id="pClsBox"></div></div>
-    <div id="lEmail" style="grid-column:1/-1"><label>อีเมลสำหรับล็อกอิน (ไม่บังคับ)<input id="pEmail" inputmode="email" autocapitalize="off" placeholder="ใส่แล้วครูเช็คชื่อชั้นที่สอนได้ทันที"></label></div>
+    <div id="lEmail" style="grid-column:1/-1" class="g2"><label>อีเมลสำหรับล็อกอิน (ไม่บังคับ)<input id="pEmail" inputmode="email" autocapitalize="off" placeholder="ใส่แล้วครูเช็คชื่อชั้นที่สอนได้ทันที"></label>
+      <label>บทบาทเช็คชื่อ<select id="pRole"><option value="">(คงเดิม / ครูประจำชั้น)</option><option value="ครูประจำชั้น">ครูประจำชั้น</option><option value="ครูผู้ช่วย">ครูผู้ช่วย</option></select></label></div>
     <label>สถานะ<select id="pSt"><option value="active">เรียนอยู่/ใช้งาน</option><option value="paused">พักการเรียน</option><option value="left">ออก/จบแล้ว</option><option value="deleted">ลบแล้ว</option></select></label>
   </div>
   <label>หมายเหตุ<input id="pNote" maxlength="200"></label>
@@ -48,7 +49,7 @@
 
 <dialog id="dI"><form method="dialog">
   <h2>นำเข้ารายชื่อ</h2>
-  <p>วางข้อมูลจาก Excel (คัดลอกเซลล์มาวาง) หรือเลือกไฟล์ .xlsx / .csv คอลัมน์: <b>ชื่อ, ชื่อที่ใช้เรียก, ประเภท, ชั้น, หมายเหตุ, อีเมล</b> (อีเมลใช้กับครู เฉพาะเจ้าของระบบ)<br>ประเภท: นักเรียน / ครู / บุคลากร (เว้นว่าง = นักเรียน) · ชั้นของ <b>ครู</b> คือชั้นที่สอน เลือกได้หลายชั้นในแผนกเดียวกัน<br>ชั้น: เขียน <i>แผนก / ชั้น</i> เช่น <i>บาลี / ประโยค ป.ธ.๓</i> เรียนหลายแผนกคั่นด้วย <b>;</b> เช่น <i>บาลี / ประโยค ป.ธ.๓ ; ธรรม / นักธรรมชั้น โท</i> (ถ้าชื่อชั้นไม่ซ้ำกันข้ามแผนก ใส่แค่ชื่อชั้นก็ได้) <a href="student-template.xlsx" download="แม่แบบรายชื่อนักเรียน.xlsx">ดาวน์โหลดแม่แบบ Excel</a></p>
+  <p>วางข้อมูลจาก Excel (คัดลอกเซลล์มาวาง) หรือเลือกไฟล์ .xlsx / .csv คอลัมน์: <b>ชื่อ, ชื่อที่ใช้เรียก, ประเภท, ชั้น, หมายเหตุ, อีเมล, บทบาท</b> (อีเมลและบทบาทใช้กับครู เฉพาะเจ้าของระบบ · บทบาท: <i>ครูประจำชั้น</i> / <i>ครูผู้ช่วย</i> เว้นว่าง = คงเดิม หรือครูประจำชั้นถ้าเป็นผู้ใช้ใหม่)<br>ประเภท: นักเรียน / ครู / บุคลากร (เว้นว่าง = นักเรียน) · ชั้นของ <b>ครู</b> คือชั้นที่สอน เลือกได้หลายชั้นในแผนกเดียวกัน<br>ชั้น: เขียน <i>แผนก / ชั้น</i> เช่น <i>บาลี / ประโยค ป.ธ.๓</i> เรียนหลายแผนกคั่นด้วย <b>;</b> เช่น <i>บาลี / ประโยค ป.ธ.๓ ; ธรรม / นักธรรมชั้น โท</i> (ถ้าชื่อชั้นไม่ซ้ำกันข้ามแผนก ใส่แค่ชื่อชั้นก็ได้) <a href="student-template.xlsx" download="แม่แบบรายชื่อนักเรียน.xlsx">ดาวน์โหลดแม่แบบ Excel</a></p>
   <textarea id="iTxt" rows="6" placeholder="พระสมชาย ใจดี&#9;สมชาย&#9;นักเรียน&#9;บาลี / ประโยค ป.ธ.๓&#9;"></textarea>
   <div class="bar" style="margin-top:8px"><input type="file" id="iFile" accept=".xlsx,.xls,.csv,.txt,text/csv" style="flex:1"><button type="button" id="iChk">ตรวจสอบ</button></div>
   <label style="color:var(--ink);display:flex;gap:8px;align-items:center"><input type="checkbox" id="iUpd" style="width:auto"> อัปเดตคนที่มีชื่อตรงกันอยู่แล้ว (เขียนทับประเภท ชั้น หมายเหตุ อีเมลตามไฟล์ ช่องที่เว้นว่างจะคงค่าเดิม)</label>
@@ -82,7 +83,7 @@
 </form></dialog>
 
 <script src="config.js"></script>
-<script src="common.js?v=e1"></script>
+<script src="common.js?v=e2"></script>
 <script src="lib/xlsx.mini.min.js"></script>
 <script>
 W.need(function(u){
@@ -130,7 +131,7 @@ W.need(function(u){
       var tags=p.cls.length?p.cls.map(function(c){return '<span class="tag">'+esc(cname(c))+'</span>'}).join(' '):(p.type==='student'?'<span class="tag">ไม่มีชั้น</span>':'');
       var tp=p.type!=='student'?'<span class="tag" style="border-color:var(--accent);color:var(--accent)">'+esc(TYPE[p.type])+'</span> ':'';
       return '<div class="row" style="flex-wrap:wrap"><input type="checkbox" data-s="'+p.id+'" style="width:auto"'+(S.sel[p.id]?' checked':'')+'>'+
-        '<div class="n" data-e="'+p.id+'" style="cursor:pointer;min-width:140px"><b>'+esc(p.name)+'</b><small>'+esc(p.id)+(p.nick?' · '+esc(p.nick):'')+(p.email?' · '+esc(p.email):'')+'</small></div>'+
+        '<div class="n" data-e="'+p.id+'" style="cursor:pointer;min-width:140px"><b>'+esc(p.name)+'</b><small>'+esc(p.id)+(p.nick?' · '+esc(p.nick):'')+(p.email?' · '+esc(p.email)+(p.role==='assistant'?' (ผู้ช่วย)':''):'')+'</small></div>'+
         '<span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex:1;min-width:120px">'+tp+tags+(ST[p.status]?' <span class="tag">'+ST[p.status]+'</span>':'')+'</span>'+
         (S.canEdit?'<button type="button" data-e="'+p.id+'" style="padding:4px 10px">แก้ไข</button>':'')+'</div>';
     }).join(''):'<p>ไม่พบรายชื่อ'+(S.canEdit?' กด "+ เพิ่ม" หรือ "นำเข้า" เพื่อเริ่มต้น':'')+'</p>';
@@ -204,11 +205,11 @@ W.need(function(u){
     S.edit=p;
     $('pT').textContent=p?('แก้ไข '+p.id):'เพิ่มบุคคล';
     $('pName').value=p?p.name:'';$('pNick').value=p?p.nick:'';$('pType').value=p?p.type:'student';
-    $('pSt').value=p?p.status:'active';$('pNote').value=p?p.note:'';$('pEmail').value=p?(p.email||''):'';
+    $('pSt').value=p?p.status:'active';$('pNote').value=p?p.note:'';$('pEmail').value=p?(p.email||''):'';$('pRole').value=p&&p.role==='assistant'?'ครูผู้ช่วย':(p&&p.role==='teacher'?'ครูประจำชั้น':'');
     $('pMsg').textContent='';
     var pre=p?p.cls:(S.cls&&S.cls!=='_none'?[S.cls]:[]);
     $('lCls').style.display='';buildCls(pre);typeUI2(pre);
-    ['pName','pNick','pType','pSt','pNote','pEmail','pSave'].forEach(function(i){$(i).disabled=!S.canEdit});
+    ['pName','pNick','pType','pSt','pNote','pEmail','pRole','pSave'].forEach(function(i){$(i).disabled=!S.canEdit});
     $('pSave').style.display=S.canEdit?'':'none';$('pCard').style.display=p?'':'none';
     $('dP').showModal();
   }
@@ -216,7 +217,7 @@ W.need(function(u){
   $('bAdd').onclick=function(){openP(null)};
   $('pCard').onclick=function(){if(S.edit)location.href='cards.html?ids='+S.edit.id};
   $('pSave').onclick=function(){
-    var d={id:S.edit?S.edit.id:'',name:$('pName').value,nick:$('pNick').value,type:$('pType').value,cls:currentCls(),status:$('pSt').value,note:$('pNote').value,email:$('pEmail').value};
+    var d={id:S.edit?S.edit.id:'',name:$('pName').value,nick:$('pNick').value,type:$('pType').value,cls:currentCls(),status:$('pSt').value,note:$('pNote').value,email:$('pEmail').value,role:$('pRole').value};
     $('pSave').disabled=true;$('pMsg').textContent='กำลังบันทึก...';
     W.api('savePerson',[d]).then(function(){$('dP').close();return load()},function(e){$('pMsg').textContent=e.message}).then(function(){$('pSave').disabled=false});
   };
@@ -232,7 +233,7 @@ W.need(function(u){
   }
   function parse(){
     var lines=$('iTxt').value.replace(/^﻿/,'').split(/\r?\n/).filter(function(l){return l.trim()});
-    var rows=lines.map(function(l){var c=splitLine(l).map(function(x){return x.trim()});return{name:c[0]||'',nick:c[1]||'',type:c[2]||'',className:c[3]||'',note:c[4]||'',email:c[5]||''}});
+    var rows=lines.map(function(l){var c=splitLine(l).map(function(x){return x.trim()});return{name:c[0]||'',nick:c[1]||'',type:c[2]||'',className:c[3]||'',note:c[4]||'',email:c[5]||'',role:c[6]||''}});
     if(rows.length&&/^(ชื่อ|name)/i.test(rows[0].name))rows.shift();
     return rows;
   }
@@ -243,7 +244,7 @@ W.need(function(u){
       r.onload=function(){try{
         var wb=XLSX.read(r.result,{type:'array'});var n=wb.SheetNames.indexOf('รายชื่อ')>=0?'รายชื่อ':wb.SheetNames[0];
         var a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
-        done(a.map(function(x){return [0,1,2,3,4,5].map(function(i){return String(x[i]==null?'':x[i]).replace(/[\t\r\n]+/g,' ')}).join('\t')}).join('\n'));
+        done(a.map(function(x){return [0,1,2,3,4,5,6].map(function(i){return String(x[i]==null?'':x[i]).replace(/[\t\r\n]+/g,' ')}).join('\t')}).join('\n'));
       }catch(e){$('iMsg').textContent='อ่านไฟล์ไม่ได้: '+e.message}};
       r.readAsArrayBuffer(f);
     }else{r.onload=function(){done(r.result)};r.readAsText(f,'utf-8')}
@@ -255,7 +256,7 @@ W.need(function(u){
     return W.api('importPeople',[rows,commit,$('iUpd').checked]).then(function(r){
       var bad=r.rows.filter(function(x){return !x.ok}).length;
       $('iPrev').innerHTML=r.rows.map(function(x){var lab=!x.ok?esc(x.msg):(x.action==='update'?(commit?'อัปเดตแล้ว ':'จะอัปเดต ')+esc(x.id):(commit?'เพิ่มแล้ว '+esc(x.id):'จะเพิ่มใหม่'));
-        return '<div class="row"><span class="n">'+esc(x.name||'(ว่าง)')+' <small>'+esc(x.type?TYPE[x.type]+' · ':'')+esc(x.classLabel||x.className)+'</small>'+(x.warn?'<small class="err">'+esc(x.warn)+'</small>':'')+'</span><span class="'+(x.ok?'ok':'err')+'">'+lab+'</span></div>'}).join('');
+        return '<div class="row"><span class="n">'+esc(x.name||'(ว่าง)')+' <small>'+esc(x.type?TYPE[x.type]+' · ':'')+esc(x.classLabel||x.className)+'</small>'+(x.role?'<small>บทบาท: '+(x.role==='assistant'?'ครูผู้ช่วย':'ครูประจำชั้น')+'</small>':'')+(x.warn?'<small class="err">'+esc(x.warn)+'</small>':'')+'</span><span class="'+(x.ok?'ok':'err')+'">'+lab+'</span></div>'}).join('');
       $('iMsg').innerHTML='<span class="'+(bad?'err':'ok')+'">'+(commit?'นำเข้าแล้ว ':'พร้อมนำเข้า ')+'เพิ่มใหม่ '+r.added+' · อัปเดต '+r.updated+(bad?' · ข้าม '+bad+' รายการ':'')+'</span>';
       $('iGo').disabled=commit||!(r.added||r.updated);
       if(commit){$('iTxt').value='';return load()}
