@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>wctac</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#222;--mut:#6b6b6b;--acc:#8a5a00;--bd:#e3ddd0;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1b19;--card:#27251f;--ink:#eee;--mut:#a9a49a;--acc:#e0b04a;--bd:#3a372f;--err:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,"Noto Sans Thai",sans-serif}
+main{max-width:480px;margin:0 auto;padding:32px 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:20px;margin-top:16px}
+h1{font-size:22px;margin:0 0 4px}p{margin:6px 0;color:var(--mut)}
+button{font:inherit;padding:10px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--ink);cursor:pointer}
+button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+.err{color:var(--err)}.ok{color:var(--acc)}input{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--bd);width:100%;background:var(--bg);color:var(--ink)}
+small{color:var(--mut)}details{margin-top:16px}
+</style>
+</head>
+<body>
+<main>
+  <h1>ระบบ wctac</h1>
+  <p>ห้องสมุดและเช็คชื่อนักเรียน · วัดพระธาตุศรีจอมทอง</p>
+  <div id="lineWarn" class="card err" style="display:none">
+    เปิดจากแอป LINE อยู่ การเข้าสู่ระบบด้วย Google อาจใช้ไม่ได้ <br>
+    กรุณากดเมนู ⋮ แล้วเลือก <b>เปิดด้วยเบราว์เซอร์</b> (Chrome / Safari)
+  </div>
+  <div id="box" class="card"></div>
+  <details><summary><small>ทางสำรองสำหรับเจ้าของระบบ</small></summary>
+    <div class="card"><input id="code" type="password" placeholder="รหัสสำรอง"><div style="height:8px"></div><button id="bCode">เข้าด้วยรหัส</button></div>
+  </details>
+  <p style="margin-top:24px"><small id="ver"></small></p>
+</main>
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+(function(){
+  var C=window.WCTAC, box=document.getElementById('box'), KEY='wctac_session';
+  if(/Line\//i.test(navigator.userAgent)) document.getElementById('lineWarn').style.display='block';
+  function api(fn,args){
+    return fetch(C.API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({fn:fn,args:args||[]})})
+      .then(function(r){return r.json()}).then(function(j){if(!j.ok)throw new Error(j.error);return j.result});
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  var ROLE={owner:'เจ้าของระบบ',librarian:'ผู้ดูแลห้องสมุด',teacher:'ครู',viewer:'ผู้ชม'};
+  function save(r){try{localStorage.setItem(KEY,r.token)}catch(e){} }
+  function getTok(){try{return localStorage.getItem(KEY)}catch(e){return null}}
+  function showUser(u){
+    box.innerHTML='<b class="ok">เข้าสู่ระบบสำเร็จ ✓</b><p>ชื่อ: '+esc(u.name)+'</p><p>อีเมล: '+esc(u.email)+'</p><p>บทบาท: '+esc(ROLE[u.role]||u.role)+'</p><p><small>นี่คือหน้าทดสอบขั้น 0 — เมนูห้องสมุดและเช็คชื่อจะตามมาในขั้นถัดไป</small></p><button id="bOut">ออกจากระบบ</button>';
+    document.getElementById('bOut').onclick=function(){var t=getTok();try{localStorage.removeItem(KEY)}catch(e){} (t?api('logout',[t]):Promise.resolve()).then(showLogin,showLogin)};
+  }
+  function handle(r){
+    if(r.denied){box.innerHTML='<b class="err">บัญชีนี้ยังไม่ได้รับอนุญาต</b><p>'+esc(r.email)+'</p><p>กรุณาแจ้งเจ้าของระบบให้เพิ่มอีเมลนี้ในรายชื่อ</p><button id="bBack">กลับ</button>';document.getElementById('bBack').onclick=showLogin;return}
+    save(r);showUser(r.user);
+  }
+  function showLogin(){
+    box.innerHTML='<p>เข้าสู่ระบบด้วยบัญชี Google</p><div id="gbtn"></div><p id="msg" class="err"></p>';
+    var n=0,t=setInterval(function(){
+      if(window.google&&google.accounts&&google.accounts.id){clearInterval(t);
+        google.accounts.id.initialize({client_id:C.CLIENT_ID,callback:function(resp){
+          document.getElementById('msg').textContent='กำลังตรวจสอบ...';
+          api('login',[resp.credential]).then(handle,function(e){document.getElementById('msg').textContent=e.message});
+        }});
+        google.accounts.id.renderButton(document.getElementById('gbtn'),{theme:'outline',size:'large',text:'signin_with',locale:'th'});
+      } else if(++n>100){clearInterval(t);document.getElementById('msg').textContent='โหลดระบบ Google ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรช'}
+    },100);
+  }
+  document.getElementById('bCode').onclick=function(){
+    api('loginCode',[document.getElementById('code').value]).then(handle,function(e){alert(e.message)});
+  };
+  api('getVersion').then(function(v){document.getElementById('ver').textContent='เวอร์ชัน '+v},function(){});
+  var tk=getTok();
+  if(tk){box.textContent='กำลังตรวจสอบ...';api('me',[tk]).then(showUser,function(){try{localStorage.removeItem(KEY)}catch(e){}showLogin()})}
+  else showLogin();
+})();
+</script>
+</body>
+</html>
