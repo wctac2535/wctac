@@ -15,6 +15,14 @@
       throw e;
     });
   };
+  W.band=function(){
+    var t=document.body.getAttribute('data-title');if(!t)return;
+    var b=document.createElement('div');b.className='band noprint';
+    b.innerHTML='<img src="img/logo.png" alt="" width="38" height="38"><div><div class="t1">'+W.esc(t)+'</div><div class="t2">ระบบสารสนเทศสำนักศาสนศึกษาวัดพระธาตุศรีจอมทอง</div></div>';
+    document.body.insertBefore(b,document.body.firstChild);
+    var h=document.querySelector('main .bar h1');if(h)h.parentNode.removeChild(h);
+  };
+  W.band();
   W.need=function(cb){
     if(!W.token()){location.href='index.html';return}
     W.raw('me',[W.token()]).then(function(u){W.user=u;cb(u)},function(){W.setToken(null);location.href='index.html'});

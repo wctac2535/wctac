@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ป้าย QR สันหนังสือ</title>
-<link rel="stylesheet" href="app.css?v=a1">
+<title>ป้าย QR สันหนังสือ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css?v=b1">
 <style>
 #pages{margin-top:12px}
 .pg{position:relative;width:210mm;height:297mm;background:#fff;margin:0 auto 10px;box-shadow:0 0 0 1px var(--bd);break-after:page;overflow:hidden}
@@ -18,7 +20,7 @@
 @media print{@page{size:A4;margin:0}body{background:#fff}main{padding:0;max-width:none}.noprint{display:none!important}#pages{margin:0}.pg{margin:0;box-shadow:none}.lb{outline:none}}
 </style>
 </head>
-<body>
+<body data-title="ป้าย QR สันหนังสือ">
 <main>
   <div class="bar noprint">
     <a class="btn" href="library.html">← กลับ</a><span class="sp"></span><small id="cnt"></small>
@@ -34,7 +36,7 @@
   <div id="pages"></div>
 </main>
 <script src="config.js"></script>
-<script src="common.js?v=a1"></script>
+<script src="common.js?v=b1"></script>
 <script src="lib/qrcode.js"></script>
 <script>
 W.need(function(){

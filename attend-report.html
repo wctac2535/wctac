@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>รายงานเช็คชื่อ</title>
-<link rel="stylesheet" href="app.css?v=a1">
+<title>รายงานเช็คชื่อ · ระบบสารสนเทศสำนักศาสนศึกษาฯ</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css?v=b1">
 </head>
-<body>
+<body data-title="รายงานเช็คชื่อ">
 <main style="max-width:1100px">
   <div class="bar noprint"><a class="btn" href="attend.html">← เช็คชื่อ</a><h1>รายงานเช็คชื่อรายเดือน</h1></div>
   <div class="card noprint">
@@ -22,7 +24,7 @@
   <p class="noprint"><small>สัญลักษณ์: ✓ มา · ส สาย · ล ลา (* มีหมายเหตุ) · ✗ ขาด · % มาเรียน = (มา+สาย) ÷ จำนวนวันที่เช็คชื่อ (วันที่บันทึกว่า "ไม่มีเรียน" ไม่นับ)</small></p>
 </main>
 <script src="config.js"></script>
-<script src="common.js?v=a1"></script>
+<script src="common.js?v=b1"></script>
 <script src="lib/xlsx.mini.min.js"></script>
 <script>
 W.need(function(u){
@@ -51,7 +53,7 @@ W.need(function(u){
   }
   function draw(){
     var r=R,all=r.session==='ALL',y=+r.ym.slice(0,4)+543,m=MN[+r.ym.slice(5,7)-1];
-    var h='<h2>รายงานการเช็คชื่อ ชั้น '+esc(r.cls.name)+' · '+m+' '+y+' · รอบ'+esc(SN[r.session])+'</h2><p>วัดพระธาตุศรีจอมทอง · จำนวนวันที่เช็คชื่อ '+(all?'(รวมทุกรอบ)':r.days.length+' วัน')+'</p>';
+    var h='<div class="orgline"><img src="img/logo.png" alt=""><div><b>สำนักศาสนศึกษาวัดพระธาตุศรีจอมทอง</b><small>รายงานการเช็คชื่อ ชั้น '+esc(r.cls.name)+' · '+m+' '+y+' · รอบ'+esc(SN[r.session])+'</small></div></div><p>จำนวนวันที่เช็คชื่อ '+(all?'(รวมทุกรอบ)':r.days.length+' วัน')+'</p>';
     if(!r.students.length){$('rep').innerHTML=h+'<p>ไม่มีข้อมูล</p>';return}
     h+='<div class="gridwrap"><table class="g"><thead><tr><th>ชื่อ</th>';
     if(!all)r.days.forEach(function(x){h+='<th>'+(+x.slice(8))+'</th>'});
