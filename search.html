@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ค้นหาหนังสือ</title>
+<link rel="stylesheet" href="app.css?v=l1b">
+</head>
+<body>
+<main style="max-width:640px">
+  <h1>ค้นหาหนังสือ</h1>
+  <p>ห้องสมุดวัดพระธาตุศรีจอมทอง · ไม่ต้องเข้าสู่ระบบ</p>
+  <div class="card">
+    <input id="q" placeholder="พิมพ์ชื่อเรื่อง ผู้แต่ง หรือสำนักพิมพ์" autofocus>
+    <div class="g2" style="margin-top:8px">
+      <select id="cat"><option value="">ทุกหมวด</option></select>
+      <select id="av"><option value="">ทั้งหมด</option><option value="1">เฉพาะที่ว่าง</option></select>
+    </div>
+    <p id="cnt"><small>กำลังโหลด...</small></p>
+    <div id="list"></div>
+  </div>
+  <p><small>แสดงสถานะว่าง/ถูกยืมเท่านั้น ไม่แสดงข้อมูลผู้ยืม · <a href="index.html">เข้าสู่ระบบเจ้าหน้าที่</a></small></p>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=l1b"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc, B=[];
+  function norm(s){return String(s||'').replace(/[๐-๙]/g,function(c){return String(c.charCodeAt(0)-0x0E50)}).replace(/\s+/g,'').toLowerCase()}
+  function draw(){
+    var t=norm($('q').value), c=$('cat').value, av=$('av').value;
+    var L=B.filter(function(b){
+      if(c&&b.c!==c)return false; if(av&&!b.v)return false;
+      return !t||norm(b.t+b.a+b.p).indexOf(t)>=0;
+    });
+    $('cnt').innerHTML='<small>พบ '+L.length+' เรื่อง'+(L.length>100?' (แสดง 100 รายการแรก พิมพ์คำค้นเพิ่มเพื่อกรอง)':'')+'</small>';
+    $('list').innerHTML=L.slice(0,100).map(function(b){
+      return '<div class="row"><div class="n"><b style="white-space:normal">'+esc(b.t)+'</b><small>'+esc(b.a||'ไม่ระบุผู้แต่ง')+(b.c?' · '+esc(b.c):'')+(b.y?' · '+esc(b.y):'')+'</small></div>'+
+        '<span class="tag '+(b.v?'ok':'err')+'">'+(b.v?'ว่าง '+b.v+'/'+b.n:'ถูกยืมหมด')+'</span></div>';
+    }).join('');
+  }
+  ['q','cat','av'].forEach(function(i){$(i).oninput=draw;$(i).onchange=draw});
+  W.raw('publicCatalog').then(function(r){
+    B=r.books;$('cat').insertAdjacentHTML('beforeend',r.categories.map(function(c){return '<option>'+esc(c)+'</option>'}).join(''));draw();
+  },function(e){$('cnt').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+})();
+</script>
+</body>
+</html>

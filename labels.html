@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ป้าย QR สันหนังสือ</title>
+<link rel="stylesheet" href="app.css?v=l1b">
+<style>
+#pages{margin-top:12px}
+.pg{position:relative;width:210mm;height:297mm;background:#fff;margin:0 auto 10px;box-shadow:0 0 0 1px var(--bd);break-after:page;overflow:hidden}
+.lb{position:absolute;display:flex;gap:2mm;align-items:center;padding:1.5mm 2mm;color:#000;overflow:hidden;outline:.1mm dashed #ddd}
+.lb .q{width:25mm;height:25mm;flex:none}.lb .q svg{width:100%;height:100%;display:block}
+.lb .t{flex:1;min-width:0;line-height:1.2}
+.lb .ti{font-size:9pt;font-weight:700;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.lb .ct{font-size:7pt;margin-top:.8mm;color:#333}
+.lb .id{font:700 10pt monospace;margin-top:.8mm;letter-spacing:.5px}
+.lb .lc{font-size:7pt;color:#333}
+@media print{@page{size:A4;margin:0}body{background:#fff}main{padding:0;max-width:none}.noprint{display:none!important}#pages{margin:0}.pg{margin:0;box-shadow:none}.lb{outline:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="bar noprint">
+    <a class="btn" href="library.html">← กลับ</a><span class="sp"></span><small id="cnt"></small>
+  </div>
+  <div class="card noprint">
+    <div class="g2">
+      <label>แผ่นสติกเกอร์<select id="preset"><option value="24">24 ดวง (3×8) 63.5×33.9 มม.</option><option value="21">21 ดวง (3×7) 63.5×38.1 มม.</option></select></label>
+      <label>ข้าม n ดวงแรก (ใช้แผ่นที่ติดไปแล้วบางส่วน)<input id="skip" type="number" min="0" max="23" value="0"></label>
+    </div>
+    <div class="bar" style="margin-top:10px"><button class="p" id="bPrint">พิมพ์ / บันทึกเป็น PDF</button><button id="bMark" disabled>ทำเครื่องหมายว่าพิมพ์แล้ว</button><span id="msg"></span></div>
+    <p><small>ตั้งค่าพิมพ์: กระดาษ A4, มาตราส่วน 100% (Default), ไม่มีส่วนหัว-ท้ายกระดาษ, ขอบกระดาษ ไม่มี (None) ควรลองพิมพ์ลงกระดาษธรรมดาแล้วส่องกับแผ่นสติกเกอร์ก่อน</small></p>
+  </div>
+  <div id="pages"></div>
+</main>
+<script src="config.js"></script>
+<script src="common.js?v=l1b"></script>
+<script src="lib/qrcode.js"></script>
+<script>
+W.need(function(){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc;
+  var q=new URLSearchParams(location.search), L=[];
+  var PRE={24:{w:63.5,h:33.9,cols:3,rows:8,l:7.2,t:13.1,px:66.04},21:{w:63.5,h:38.1,cols:3,rows:7,l:7.2,t:15.15,px:66.04}};
+  function render(){
+    var P=PRE[$('preset').value], per=P.cols*P.rows, skip=Math.max(0,Math.min(per-1,Number($('skip').value)||0));
+    var items=[];for(var i=0;i<skip;i++)items.push(null);items=items.concat(L);
+    var pages=Math.ceil(items.length/per)||1, h='';
+    for(var p=0;p<pages;p++){
+      h+='<div class="pg">';
+      for(var k=0;k<per;k++){
+        var it=items[p*per+k];if(!it)continue;
+        var col=k%P.cols,row=Math.floor(k/P.cols);
+        var x=qrcode(0,'M');x.addData(it.copyId);x.make();
+        h+='<div class="lb" style="left:'+(P.l+col*P.px)+'mm;top:'+(P.t+row*P.h)+'mm;width:'+P.w+'mm;height:'+P.h+'mm"><div class="q">'+x.createSvgTag({cellSize:4,margin:1,scalable:true})+'</div>'+
+          '<div class="t"><div class="ti">'+esc(it.title)+'</div>'+(it.category?'<div class="ct">'+esc(it.category)+'</div>':'')+'<div class="id">'+esc(it.copyId)+'</div>'+(it.location?'<div class="lc">'+esc(it.location)+'</div>':'')+'</div></div>';
+      }
+      h+='</div>';
+    }
+    $('pages').innerHTML=h;$('cnt').textContent=L.length+' ดวง · '+pages+' แผ่น';
+  }
+  $('preset').onchange=$('skip').oninput=render;
+  $('bPrint').onclick=function(){window.print();$('bMark').disabled=!L.length};
+  $('bMark').onclick=function(){
+    $('bMark').disabled=true;
+    W.api('markPrinted',[L.map(function(x){return x.copyId})]).then(function(n){$('msg').innerHTML='<span class="ok">บันทึกแล้ว '+n+' เล่ม</span>'},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  };
+  var ids=(q.get('ids')||'').split(',').filter(Boolean);
+  W.api('getLabels',[ids,q.get('book')||'',q.get('unprinted')==='1']).then(function(r){L=r;render();if(!r.length)$('msg').textContent='ไม่พบรายการที่จะพิมพ์'},function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+});
+</script>
+</body>
+</html>

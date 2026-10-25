@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>จัดการหนังสือ</title>
+<link rel="stylesheet" href="app.css?v=l1b">
+</head>
+<body>
+<main>
+  <div class="bar"><a class="btn" href="index.html">← หน้าแรก</a><h1>จัดการหนังสือ</h1><span class="sp"></span><a class="btn" href="search.html">หน้าค้นหาสาธารณะ</a></div>
+  <div class="card">
+    <div class="bar">
+      <input id="q" placeholder="ค้นหาชื่อเรื่อง / ผู้แต่ง / ISBN / รหัสเล่ม" style="flex:1;min-width:160px">
+      <select id="cat" style="width:auto"><option value="">ทุกหมวด</option></select>
+    </div>
+    <div class="bar" style="margin-top:8px">
+      <button class="p" id="bAdd">+ เพิ่มหนังสือ</button><button id="bImp">นำเข้าจาก Excel</button><button id="bCat">หมวด</button><button id="bUnp">พิมพ์ป้ายที่ยังไม่พิมพ์</button>
+      <span class="sp"></span><small id="cnt"></small>
+    </div>
+    <div id="list" style="margin-top:8px"></div>
+    <p id="msg"></p>
+  </div>
+</main>
+
+<dialog id="dB"><form method="dialog">
+  <h2 id="bT">เพิ่มหนังสือ</h2>
+  <div class="bar"><input id="bIsbn" placeholder="ISBN (ถ้ามี)" style="flex:1"><button type="button" id="bFetch">ดึงข้อมูลจาก ISBN</button></div>
+  <p id="bIM"><small>ถ้าไม่มี ISBN ข้ามได้ กรอกเองทั้งหมด</small></p>
+  <label>ชื่อเรื่อง *<input id="bTitle" maxlength="200"></label>
+  <div class="g2">
+    <label>ผู้แต่ง<input id="bAuthor" maxlength="150"></label>
+    <label>หมวด<select id="bCatSel"></select></label>
+    <label>สำนักพิมพ์<input id="bPub" maxlength="100"></label>
+    <label>ปีพิมพ์<input id="bYear" inputmode="numeric" maxlength="4"></label>
+  </div>
+  <label>หมายเหตุ<input id="bNote" maxlength="300"></label>
+  <div id="bNew" class="g2"><label>จำนวนเล่ม<input id="bN" type="number" min="1" max="50" value="1"></label><label>ที่เก็บ<input id="bLoc" maxlength="60" placeholder="เช่น ตู้ 1 ชั้น 2"></label></div>
+  <div id="bCopies"></div>
+  <p id="bMsg" class="err"></p>
+  <div class="bar"><button type="button" id="bSave" class="p">บันทึก</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+</form></dialog>
+
+<dialog id="dI"><form method="dialog">
+  <h2>นำเข้าหนังสือจาก Excel</h2>
+  <p>ใช้ไฟล์แม่แบบ <a href="book-template.xlsx" download="แม่แบบทะเบียนหนังสือ.xlsx">ดาวน์โหลดแม่แบบ (.xlsx)</a> กรอกแล้วเลือกไฟล์ที่นี่ (รองรับ .xlsx และ .csv)</p>
+  <input type="file" id="iFile" accept=".xlsx,.xls,.csv,.txt">
+  <p id="iInfo"></p>
+  <div id="iPrev" style="max-height:34vh;overflow:auto"></div>
+  <div class="bar" style="margin-top:8px"><button type="button" id="iGo" class="p" disabled>ยืนยันนำเข้า</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+  <div id="iDone"></div>
+</form></dialog>
+
+<dialog id="dK"><form method="dialog">
+  <h2>หมวดหนังสือ</h2>
+  <div id="kList"></div>
+  <div class="bar" style="margin-top:8px"><button type="button" id="kAdd">+ เพิ่มหมวด</button><button type="button" id="kSave" class="p">บันทึก</button><span class="sp"></span><button type="button" data-close>ปิด</button></div>
+  <p id="kMsg" class="err"></p>
+</form></dialog>
+
+<script src="config.js"></script>
+<script src="common.js?v=l1b"></script>
+<script src="lib/xlsx.mini.min.js"></script>
+<script>
+W.need(function(u){
+  var $=function(i){return document.getElementById(i)}, esc=W.esc;
+  if(u.role!=='owner'&&u.role!=='librarian'){document.querySelector('main').innerHTML='<div class="card err">บัญชีนี้ไม่มีสิทธิ์จัดการห้องสมุด <a href="index.html">กลับ</a></div>';return}
+  var S={books:[],cats:[],edit:null}, SL={available:'ว่าง',borrowed:'ถูกยืม',lost:'สูญหาย',withdrawn:'จำหน่ายออก'};
+  document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=function(){b.closest('dialog').close()}});
+  function catName(id){var c=S.cats.filter(function(x){return x.catId===id})[0];return c?c.name:''}
+  function norm(s){return String(s||'').replace(/[๐-๙]/g,function(c){return String(c.charCodeAt(0)-0x0E50)}).replace(/\s+/g,'').toLowerCase()}
+  function load(){
+    return W.api('listBooks').then(function(r){
+      S.books=r.books;S.cats=r.categories;
+      var cur=$('cat').value;
+      $('cat').innerHTML='<option value="">ทุกหมวด</option>'+S.cats.map(function(c){return '<option value="'+c.catId+'">'+esc(c.name)+'</option>'}).join('');$('cat').value=cur;
+      var unp=0;S.books.forEach(function(b){b.copies.forEach(function(c){if(!c.printed&&c.status!=='withdrawn')unp++})});
+      $('bUnp').textContent='พิมพ์ป้ายที่ยังไม่พิมพ์ ('+unp+')';$('bUnp').disabled=!unp;
+      draw();
+    },function(e){$('msg').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+  }
+  function draw(){
+    var t=norm($('q').value),c=$('cat').value;
+    var L=S.books.filter(function(b){
+      if(c&&b.catId!==c)return false;
+      if(!t)return true;
+      return norm(b.title+b.author+b.isbn+b.bookId+b.copies.map(function(x){return x.copyId}).join(' ')).indexOf(t)>=0;
+    });
+    $('cnt').textContent=L.length+' เรื่อง · '+S.books.reduce(function(a,b){return a+b.copies.length},0)+' เล่มทั้งหมด';
+    $('list').innerHTML=L.slice(0,150).map(function(b){
+      var av=b.copies.filter(function(x){return x.status==='available'}).length;
+      return '<div class="row" data-b="'+b.bookId+'" style="cursor:pointer"><div class="n"><b>'+esc(b.title)+'</b><small>'+esc(b.bookId)+' · '+esc(b.author||'ไม่ระบุผู้แต่ง')+'</small></div>'+
+        '<span class="tag">'+esc(catName(b.catId)||'ไม่มีหมวด')+'</span><span class="tag">ว่าง '+av+'/'+b.copies.length+'</span></div>';
+    }).join('')||'<p>ยังไม่มีหนังสือ กด "+ เพิ่มหนังสือ" หรือ "นำเข้าจาก Excel"</p>';
+    if(L.length>150)$('list').insertAdjacentHTML('beforeend','<p><small>แสดง 150 รายการแรก พิมพ์คำค้นเพื่อกรอง</small></p>');
+    $('list').querySelectorAll('[data-b]').forEach(function(r){r.onclick=function(){openB(r.dataset.b)}});
+  }
+  $('q').oninput=draw;$('cat').onchange=draw;
+
+  /* ---- เพิ่ม/แก้ไข หนังสือ ---- */
+  function fillCat(sel){sel.innerHTML='<option value="">(ไม่ระบุ)</option>'+S.cats.map(function(c){return '<option value="'+c.catId+'">'+esc(c.name)+'</option>'}).join('')}
+  function drawCopies(){
+    var b=S.edit;if(!b){$('bCopies').innerHTML='';return}
+    $('bCopies').innerHTML='<h2 style="margin-top:14px">เล่มสำเนา ('+b.copies.length+')</h2>'+b.copies.map(function(c){
+      var ro=c.status==='borrowed';
+      return '<div class="row"><b style="font-family:monospace">'+esc(c.copyId)+'</b><input data-l="'+c.copyId+'" value="'+esc(c.location)+'" placeholder="ที่เก็บ" style="flex:1">'+
+        '<select data-st="'+c.copyId+'" style="width:auto"'+(ro?' disabled':'')+'>'+['available','borrowed','lost','withdrawn'].map(function(s){return '<option value="'+s+'"'+(c.status===s?' selected':'')+(s==='borrowed'&&!ro?' disabled':'')+'>'+SL[s]+'</option>'}).join('')+'</select>'+
+        '<a class="btn" href="labels.html?ids='+c.copyId+'">ป้าย</a></div>';
+    }).join('')+'<div class="bar" style="margin-top:8px"><input id="aN" type="number" min="1" max="50" value="1" style="width:80px"><input id="aL" placeholder="ที่เก็บ" style="flex:1"><button type="button" id="aGo">+ เพิ่มเล่ม</button><a class="btn" href="labels.html?book='+b.bookId+'">พิมพ์ป้ายทั้งเรื่อง</a></div>';
+    $('bCopies').querySelectorAll('[data-l]').forEach(function(i){i.onchange=function(){W.api('setCopy',[i.dataset.l,'',i.value]).then(load,function(e){$('bMsg').textContent=e.message})}});
+    $('bCopies').querySelectorAll('[data-st]').forEach(function(i){i.onchange=function(){W.api('setCopy',[i.dataset.st,i.value,null]).then(function(){return load()}).then(function(){S.edit=S.books.filter(function(x){return x.bookId===b.bookId})[0];drawCopies()},function(e){$('bMsg').textContent=e.message;i.value=b.copies.filter(function(c){return c.copyId===i.dataset.st})[0].status})}});
+    $('aGo').onclick=function(){
+      W.api('addCopies',[b.bookId,$('aN').value,$('aL').value]).then(function(ids){return load().then(function(){S.edit=S.books.filter(function(x){return x.bookId===b.bookId})[0];drawCopies();$('bMsg').innerHTML='<span class="ok">เพิ่มแล้ว '+ids.join(', ')+'</span>'})},function(e){$('bMsg').textContent=e.message});
+    };
+  }
+  function openB(id){
+    var b=id?S.books.filter(function(x){return x.bookId===id})[0]:null;S.edit=b;
+    fillCat($('bCatSel'));
+    $('bT').textContent=b?('แก้ไข '+b.bookId):'เพิ่มหนังสือ';
+    $('bIsbn').value=b?b.isbn:'';$('bTitle').value=b?b.title:'';$('bAuthor').value=b?b.author:'';$('bCatSel').value=b?b.catId:'';
+    $('bPub').value=b?b.publisher:'';$('bYear').value=b?b.year:'';$('bNote').value=b?b.note:'';$('bN').value=1;$('bLoc').value='';
+    $('bNew').style.display=b?'none':'';$('bMsg').textContent='';$('bIM').innerHTML='<small>ถ้าไม่มี ISBN ข้ามได้ กรอกเองทั้งหมด</small>';
+    drawCopies();$('dB').showModal();
+  }
+  $('bAdd').onclick=function(){openB(null)};
+  function isbnOk(v){
+    v=v.replace(/[^0-9X]/gi,'').toUpperCase();
+    if(v.length===13){var s=0;for(var i=0;i<12;i++)s+=(+v[i])*(i%2?3:1);return (10-s%10)%10===+v[12]}
+    if(v.length===10){var t=0;for(var j=0;j<10;j++)t+=(v[j]==='X'?10:+v[j])*(10-j);return t%11===0}
+    return false;
+  }
+  function fetchJson(url){return fetch(url).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})}
+  function lookup(isbn){
+    return fetchJson('https://www.googleapis.com/books/v1/volumes?q=isbn:'+isbn+'&maxResults=1').then(function(j){
+      var v=j.items&&j.items[0]&&j.items[0].volumeInfo;if(!v)throw new Error('none');
+      return {src:'Google Books',title:(v.title||'')+(v.subtitle?' '+v.subtitle:''),author:(v.authors||[]).join(', '),publisher:v.publisher||'',year:(v.publishedDate||'').slice(0,4)};
+    }).catch(function(){
+      return fetchJson('https://openlibrary.org/api/books?bibkeys=ISBN:'+isbn+'&format=json&jscmd=data').then(function(j){
+        var v=j['ISBN:'+isbn];if(!v)throw new Error('none');
+        return {src:'Open Library',title:(v.title||'')+(v.subtitle?' '+v.subtitle:''),author:(v.authors||[]).map(function(a){return a.name}).join(', '),publisher:(v.publishers||[]).map(function(a){return a.name}).join(', '),year:((v.publish_date||'').match(/\d{4}/)||[''])[0]};
+      });
+    });
+  }
+  $('bFetch').onclick=function(){
+    var isbn=$('bIsbn').value.replace(/[^0-9X]/gi,'').toUpperCase();
+    if(!isbn){$('bIM').innerHTML='<span class="err">กรอก ISBN ก่อน</span>';return}
+    var warn=isbnOk(isbn)?'':' <span class="err">(เลข ISBN อาจพิมพ์ผิด ตรวจสอบอีกครั้ง)</span>';
+    $('bIM').textContent='กำลังค้นหา...';$('bFetch').disabled=true;
+    lookup(isbn).then(function(r){
+      [['bTitle','title'],['bAuthor','author'],['bPub','publisher'],['bYear','year']].forEach(function(p){if(!$(p[0]).value.trim()&&r[p[1]])$(p[0]).value=r[p[1]]});
+      $('bIM').innerHTML='<span class="ok">พบข้อมูลจาก '+r.src+' (เติมเฉพาะช่องที่ว่าง ตรวจสอบก่อนบันทึก)</span>'+warn;
+    },function(){$('bIM').innerHTML='<span class="err">ไม่พบข้อมูลของ ISBN นี้ กรอกเองได้เลย</span>'+warn}).then(function(){$('bFetch').disabled=false});
+  };
+  $('bSave').onclick=function(){
+    var d={bookId:S.edit?S.edit.bookId:'',title:$('bTitle').value,author:$('bAuthor').value,catId:$('bCatSel').value,isbn:$('bIsbn').value,publisher:$('bPub').value,year:$('bYear').value,note:$('bNote').value};
+    $('bSave').disabled=true;$('bMsg').textContent='กำลังบันทึก...';
+    W.api('saveBook',[d,$('bN').value,$('bLoc').value]).then(function(r){
+      return load().then(function(){
+        if(S.edit){$('dB').close();return}
+        S.edit=S.books.filter(function(x){return x.bookId===r.bookId})[0];$('bT').textContent='แก้ไข '+r.bookId;$('bNew').style.display='none';drawCopies();
+        $('bMsg').innerHTML='<span class="ok">บันทึกแล้ว '+r.bookId+' · ออกรหัสเล่ม '+r.copyIds.join(', ')+'</span>';
+      });
+    },function(e){$('bMsg').textContent=e.message}).then(function(){$('bSave').disabled=false});
+  };
+  $('bUnp').onclick=function(){location.href='labels.html?unprinted=1'};
+
+  /* ---- นำเข้า Excel ---- */
+  var IMP=[],COLS={title:['ชื่อเรื่อง','title'],author:['ผู้แต่ง','author'],category:['หมวด','category'],isbn:['isbn'],publisher:['สำนักพิมพ์','publisher'],year:['ปีพิมพ์','year'],copies:['จำนวนเล่ม','copies'],location:['ที่เก็บ','location'],note:['หมายเหตุ','note']};
+  function cellStr(v){if(v==null)return '';if(typeof v==='number'){return /e/i.test(String(v))?v.toLocaleString('fullwide',{useGrouping:false}):String(v)}return String(v).trim()}
+  function rowsFromAOA(a){
+    if(!a.length)return [];
+    var hdr=a[0].map(function(h){return String(h||'').replace(/[*\s]/g,'').toLowerCase()}), idx={},k;
+    for(k in COLS){idx[k]=-1;COLS[k].forEach(function(n){var i=hdr.indexOf(n.replace(/\s/g,'').toLowerCase());if(i>=0&&idx[k]<0)idx[k]=i})}
+    var order=Object.keys(COLS);
+    if(idx.title<0){order.forEach(function(k,i){idx[k]=i});}else a=a.slice(1);
+    return a.map(function(r){var o={};order.forEach(function(k){o[k]=idx[k]>=0?cellStr(r[idx[k]]):''});return o}).filter(function(o){return Object.keys(o).some(function(k){return o[k]})});
+  }
+  $('bImp').onclick=function(){IMP=[];$('iFile').value='';$('iInfo').textContent='';$('iPrev').innerHTML='';$('iDone').innerHTML='';$('iGo').disabled=true;$('dI').showModal()};
+  function chunks(a,n){var o=[];for(var i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o}
+  function runChunks(rows,commit,agg,i){
+    var C=chunks(rows,250);
+    if(i>=C.length)return Promise.resolve(agg);
+    $('iInfo').textContent=(commit?'กำลังนำเข้า ':'กำลังตรวจสอบ ')+Math.min((i+1)*250,rows.length)+' / '+rows.length;
+    return W.api('importBooks',[C[i],commit]).then(function(r){agg.rows=agg.rows.concat(r.rows);agg.books+=r.books;agg.copies+=r.copies;return runChunks(rows,commit,agg,i+1)});
+  }
+  $('iFile').onchange=function(){
+    var f=this.files[0];if(!f)return;$('iInfo').textContent='กำลังอ่านไฟล์...';$('iPrev').innerHTML='';$('iDone').innerHTML='';$('iGo').disabled=true;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var wb=XLSX.read(rd.result,{type:'array'});
+        var name=wb.SheetNames.indexOf('หนังสือ')>=0?'หนังสือ':wb.SheetNames[0];
+        IMP=rowsFromAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:''}));
+      }catch(e){$('iInfo').innerHTML='<span class="err">อ่านไฟล์ไม่ได้: '+esc(e.message)+'</span>';return}
+      if(!IMP.length){$('iInfo').innerHTML='<span class="err">ไม่พบข้อมูลในไฟล์</span>';return}
+      var seen={},dups=[],keep=[];
+      IMP.forEach(function(r){var k=norm(r.title+'|'+r.author);if(!r.title){keep.push(r);return}if(seen[k]){dups.push(r)}else{seen[k]=1;keep.push(r)}});
+      IMP=keep;IMP._dups=dups;
+      if(IMP.length>1500){$('iInfo').innerHTML='<span class="err">ไฟล์มี '+IMP.length+' แถว แบ่งนำเข้าไม่เกิน 1,500 แถวต่อครั้ง</span>';return}
+      runChunks(IMP,false,{rows:[],books:0,copies:0},0).then(function(a){
+        var bad=a.rows.filter(function(x){return !x.ok});
+        (IMP._dups||[]).forEach(function(r){bad.push({title:r.title,ok:false,msg:'ซ้ำกับแถวอื่นในไฟล์ (ชื่อ+ผู้แต่งเหมือนกัน) ข้ามไป'})});
+        $('iInfo').innerHTML='<b class="'+(bad.length?'err':'ok')+'">พร้อมนำเข้า '+a.books+' เรื่อง · '+a.copies+' เล่ม'+(bad.length?' · ข้าม '+bad.length+' แถว':'')+'</b>';
+        $('iPrev').innerHTML=bad.concat(a.rows.filter(function(x){return x.ok}).slice(0,30)).map(function(x){return '<div class="row"><span class="n">'+esc(x.title||'(ว่าง)')+'</span><span class="'+(x.ok?'ok':'err')+'">'+(x.ok?x.copies+' เล่ม'+(x.newCat?' · หมวดใหม่':''):esc(x.msg))+'</span></div>'}).join('')+(a.books>30?'<p><small>แสดงรายการที่ข้ามทั้งหมด และรายการพร้อมนำเข้า 30 รายการแรก</small></p>':'');
+        $('iGo').disabled=!a.books;
+      },function(e){$('iInfo').innerHTML='<span class="err">'+esc(e.message)+'</span>'});
+    };
+    rd.readAsArrayBuffer(f);
+  };
+  $('iGo').onclick=function(){
+    $('iGo').disabled=true;
+    runChunks(IMP,true,{rows:[],books:0,copies:0},0).then(function(a){
+      $('iInfo').innerHTML='<b class="ok">นำเข้าแล้ว '+a.books+' เรื่อง · '+a.copies+' เล่ม</b>';
+      $('iDone').innerHTML='<p><a class="btn p" href="labels.html?unprinted=1" style="color:#fff">พิมพ์ป้าย QR ทั้งหมดที่ยังไม่พิมพ์</a></p>';
+      IMP=[];return load();
+    },function(e){$('iInfo').innerHTML='<span class="err">'+esc(e.message)+' (นำเข้าซ้ำได้อย่างปลอดภัย เรื่องที่เข้าแล้วจะถูกข้าม)</span>';$('iGo').disabled=false});
+  };
+
+  /* ---- หมวด ---- */
+  var KL=[];
+  function drawK(){
+    $('kList').innerHTML=KL.map(function(c,i){return '<div class="row"><input data-n="'+i+'" value="'+esc(c.name)+'" maxlength="50" style="flex:1"><button type="button" data-u="'+i+'">↑</button><button type="button" class="d" data-x="'+i+'">ลบ</button></div>'}).join('');
+    $('kList').querySelectorAll('[data-n]').forEach(function(x){x.oninput=function(){KL[x.dataset.n].name=x.value}});
+    $('kList').querySelectorAll('[data-u]').forEach(function(x){x.onclick=function(){var i=+x.dataset.u;if(i>0){var t=KL[i];KL[i]=KL[i-1];KL[i-1]=t;drawK()}}});
+    $('kList').querySelectorAll('[data-x]').forEach(function(x){x.onclick=function(){KL.splice(+x.dataset.x,1);drawK()}});
+  }
+  $('bCat').onclick=function(){KL=S.cats.map(function(c){return {catId:c.catId,name:c.name}});$('kMsg').textContent='';drawK();$('dK').showModal()};
+  $('kAdd').onclick=function(){KL.push({name:''});drawK()};
+  $('kSave').onclick=function(){$('kMsg').textContent='กำลังบันทึก...';W.api('saveCategories',[KL]).then(function(){$('kMsg').innerHTML='<span class="ok">บันทึกแล้ว</span>';return load()},function(e){$('kMsg').textContent=e.message})};
+  load();
+});
+</script>
+</body>
+</html>
